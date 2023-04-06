@@ -1,0 +1,212 @@
+/*
+ * Copyright © Wynntils 2022.
+ * This file is released under AGPLv3. See LICENSE for full license details.
+ */
+package com.wynntils.screens.base;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.wynntils.screens.base.widgets.TextInputBoxWidget;
+import com.wynntils.screens.base.widgets.WynntilsButton;
+import com.wynntils.utils.MathUtils;
+import com.wynntils.utils.colors.CommonColors;
+import com.wynntils.utils.mc.McUtils;
+import com.wynntils.utils.render.FontRenderer;
+import com.wynntils.utils.render.Texture;
+import com.wynntils.utils.render.type.HorizontalAlignment;
+import com.wynntils.utils.render.type.TextShadow;
+import com.wynntils.utils.render.type.VerticalAlignment;
+import java.util.ArrayList;
+import java.util.List;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
+
+public abstract class WynntilsListScreen<E, B extends WynntilsButton> extends WynntilsMenuScreenBase
+        implements WynntilsPagedScreen, TextboxScreen {
+    private double currentScroll = 0;
+
+    protected int currentPage = 0;
+    protected int maxPage = 0;
+    protected List<E> elements = new ArrayList<>();
+
+    private final List<B> elementButtons = new ArrayList<>();
+    protected Renderable hovered = null;
+
+    @Override
+    protected void doInit() {
+    }
+
+    protected WynntilsListScreen(Component component) {
+        super(component);
+
+    }
+
+    protected void renderWidgets(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        this.hovered = null;
+
+        final float translationX = getTranslationX();
+        final float translationY = getTranslationY();
+
+        for (Renderable renderable : new ArrayList<>(this.renderables)) {
+            renderable.render(poseStack, (int) (mouseX - translationX), (int) (mouseY - translationY), partialTick);
+
+            if (renderable instanceof WynntilsButton button) {
+                if (button.isMouseOver(mouseX - translationX, mouseY - translationY)) {
+                    this.hovered = button;
+                }
+            }
+        }
+    }
+
+    protected void renderPageInfo(PoseStack poseStack, int currentPage, int maxPage) {
+        FontRenderer.getInstance()
+                .renderAlignedTextInBox(
+                        poseStack,
+                        (currentPage) + " / " + (maxPage),
+                        Texture.QUEST_BOOK_BACKGROUND.width() / 2f,
+                        Texture.QUEST_BOOK_BACKGROUND.width(),
+                        Texture.QUEST_BOOK_BACKGROUND.height() - 25,
+                        0,
+                        CommonColors.BLACK,
+                        HorizontalAlignment.CENTER,
+                        TextShadow.NONE);
+    }
+
+    protected void renderNoElementsHelper(PoseStack poseStack, String key) {
+        FontRenderer.getInstance()
+                .renderAlignedTextInBox(
+                        poseStack,
+                        key,
+                        Texture.QUEST_BOOK_BACKGROUND.width() / 2f + 15f,
+                        Texture.QUEST_BOOK_BACKGROUND.width() - 15f,
+                        0,
+                        Texture.QUEST_BOOK_BACKGROUND.height(),
+                        Texture.QUEST_BOOK_BACKGROUND.width() / 2f - 30f,
+                        CommonColors.BLACK,
+                        HorizontalAlignment.CENTER,
+                        VerticalAlignment.MIDDLE,
+                        TextShadow.NONE);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        final float translationX = getTranslationX();
+        final float translationY = getTranslationY();
+
+        for (GuiEventListener child : new ArrayList<>(this.children())) {
+            if (child.isMouseOver(mouseX - translationX, mouseY - translationY)) {
+                child.mouseClicked(mouseX - translationX, mouseY - translationY, button);
+            }
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        final float translationX = getTranslationX();
+        final float translationY = getTranslationY();
+
+        for (GuiEventListener child : new ArrayList<>(this.children())) {
+            child.mouseDragged(mouseX - translationX, mouseY - translationY, button, dragX, dragY);
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        final float translationX = getTranslationX();
+        final float translationY = getTranslationY();
+
+        for (GuiEventListener child : new ArrayList<>(this.children())) {
+            child.mouseReleased(mouseX - translationX, mouseY - translationY, button);
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+
+
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(char codePoint, int modifiers) {
+
+        return super.charTyped(codePoint, modifiers);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        // Usually, mouse scroll wheel delta is always (-)1
+        if (Math.abs(delta) == 1) {
+            setCurrentPage(getCurrentPage() - (int) delta);
+            return true;
+        }
+
+        // Now we handle touchpad scrolling
+
+        // Delta is divided by 10 to make it more precise
+        // We subtract so scrolling down actually scrolls down
+        currentScroll -= delta / 10d;
+
+        if (Math.abs(currentScroll) < 1) return true;
+
+        int scroll = (int) (currentScroll);
+        currentScroll = currentScroll % 1;
+
+        setCurrentPage(getCurrentPage() + scroll);
+
+        return true;
+    }
+
+    @Override
+    public int getCurrentPage() {
+        return currentPage;
+    }
+
+
+    @Override
+    public int getMaxPage() {
+        return maxPage;
+    }
+
+    private void reloadElements(String searchTerm) {
+        elements.clear();
+        reloadElementsList(searchTerm);
+
+        this.maxPage = Math.max(
+                0,
+                (elements.size() / getElementsPerPage() + (elements.size() % getElementsPerPage() != 0 ? 1 : 0)) - 1);
+
+        for (B button : elementButtons) {
+            this.removeWidget(button);
+        }
+
+        elementButtons.clear();
+
+        final int start = Math.max(0, currentPage * getElementsPerPage());
+        for (int i = start; i < Math.min(elements.size(), start + getElementsPerPage()); i++) {
+            B button = getButtonFromElement(i);
+            elementButtons.add(button);
+            this.addRenderableWidget(button);
+        }
+    }
+
+    protected abstract B getButtonFromElement(int i);
+
+    protected abstract void reloadElementsList(String searchTerm);
+
+
+    // Dummy impl
+    @Override
+    public void setFocusedTextInput(TextInputBoxWidget focusedTextInput) {}
+
+    protected int getElementsPerPage() {
+        return 13;
+    }
+}
