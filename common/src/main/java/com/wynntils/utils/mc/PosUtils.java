@@ -1,6 +1,6 @@
 /*
  * Copyright © Wynntils 2023.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.utils.mc;
 
@@ -12,11 +12,11 @@ import net.minecraft.world.phys.Vec3;
 
 public final class PosUtils {
     public static BlockPos newBlockPos(double x, double y, double z) {
-        return new BlockPos((int) x, (int) y, (int) z);
+        return BlockPos.containing(x, y, z);
     }
 
     public static BlockPos newBlockPos(Position position) {
-        return new BlockPos((int) position.x(), (int) position.y(), (int) position.z());
+        return BlockPos.containing(position);
     }
 
     public static Position newPosition(Entity entity) {
@@ -31,6 +31,16 @@ public final class PosUtils {
      * in the y position.
      */
     public static boolean isSame(Position first, Position second) {
-        return second.x() == first.x() && second.z() == first.z() && Math.abs(second.y() - first.y()) < 1.5;
+        return first.x() == second.x() && first.z() == second.z() && Math.abs(first.y() - second.y()) < 1.5;
+    }
+
+    public static boolean equalsIgnoringY(Position pos1, Position pos2) {
+        return pos1.x() == pos2.x() && pos1.z() == pos2.z();
+    }
+
+    public static boolean closerThanIgnoringY(Position pos1, Position pos2, double distance) {
+        double xD = pos1.x() - pos2.x();
+        double zD = pos1.z() - pos2.z();
+        return xD * xD + zD * zD < distance * distance;
     }
 }

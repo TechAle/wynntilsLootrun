@@ -1,20 +1,25 @@
 /*
- * Copyright © Wynntils 2021.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2021-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.mc.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.wynntils.core.events.MixinHelper;
 import com.wynntils.mc.event.ContainerCloseEvent;
+import com.wynntils.mc.event.ContainerLabelRenderEvent;
 import com.wynntils.mc.event.ContainerRenderEvent;
 import com.wynntils.mc.event.InventoryKeyPressEvent;
 import com.wynntils.mc.event.InventoryMouseClickedEvent;
 import com.wynntils.mc.event.SlotRenderEvent;
 import com.wynntils.screens.base.TextboxScreen;
 import com.wynntils.screens.base.widgets.TextInputBoxWidget;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.Slot;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -34,6 +39,56 @@ public abstract class AbstractContainerScreenMixin {
                 (AbstractContainerScreen<?>) (Object) this, client, mouseX, mouseY, partialTicks, this.hoveredSlot));
     }
 
+    @WrapOperation(
+            method = "renderLabels(Lcom/mojang/blaze3d/vertex/PoseStack;II)V",
+            at =
+                    @At(
+                            value = "INVOKE",
+                            target =
+                                    "Lnet/minecraft/client/gui/Font;draw(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/network/chat/Component;FFI)I",
+                            ordinal = 0))
+    private int renderContainerLabel(
+            Font instance,
+            PoseStack poseStack,
+            Component text,
+            float x,
+            float y,
+            int color,
+            Operation<Integer> original) {
+        ContainerLabelRenderEvent.ContainerLabel event = new ContainerLabelRenderEvent.ContainerLabel(
+                (AbstractContainerScreen<?>) (Object) this, poseStack, color, x, y, text);
+        MixinHelper.post(event);
+
+        if (event.isCanceled()) return 0;
+
+        return original.call(instance, poseStack, event.getContainerLabel(), x, y, event.getColor());
+    }
+
+    @WrapOperation(
+            method = "renderLabels(Lcom/mojang/blaze3d/vertex/PoseStack;II)V",
+            at =
+                    @At(
+                            value = "INVOKE",
+                            target =
+                                    "Lnet/minecraft/client/gui/Font;draw(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/network/chat/Component;FFI)I",
+                            ordinal = 1))
+    private int renderInventoryLabel(
+            Font instance,
+            PoseStack poseStack,
+            Component text,
+            float x,
+            float y,
+            int color,
+            Operation<Integer> original) {
+        ContainerLabelRenderEvent.InventoryLabel event = new ContainerLabelRenderEvent.InventoryLabel(
+                (AbstractContainerScreen<?>) (Object) this, poseStack, color, x, y, text);
+        MixinHelper.post(event);
+
+        if (event.isCanceled()) return 0;
+
+        return original.call(instance, poseStack, event.getInventoryLabel(), x, y, event.getColor());
+    }
+
     @Inject(
             method = "renderSlot(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/inventory/Slot;)V",
             at = @At("HEAD"))
@@ -47,7 +102,7 @@ public abstract class AbstractContainerScreenMixin {
                     @At(
                             value = "INVOKE",
                             target =
-                                    "Lnet/minecraft/client/renderer/entity/ItemRenderer;renderGuiItemDecorations(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;IILjava/lang/String;)V"))
+                                    "Lnet/minecraft/client/renderer/entity/ItemRenderer;renderGuiItemDecorations(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;IILjava/lang/String;)V"))
     private void renderSlotPreCount(PoseStack poseStack, Slot slot, CallbackInfo info) {
         MixinHelper.post(new SlotRenderEvent.CountPre(poseStack, (Screen) (Object) this, slot));
     }

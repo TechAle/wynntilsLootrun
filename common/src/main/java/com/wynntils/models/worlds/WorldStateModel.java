@@ -1,12 +1,13 @@
 /*
- * Copyright © Wynntils 2021.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2021-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.models.worlds;
 
 import com.wynntils.core.WynntilsMod;
 import com.wynntils.core.components.Model;
 import com.wynntils.core.mod.event.WynncraftConnectionEvent;
+import com.wynntils.core.text.StyledText;
 import com.wynntils.mc.event.MenuEvent;
 import com.wynntils.mc.event.PlayerInfoEvent.PlayerDisplayNameChangeEvent;
 import com.wynntils.mc.event.PlayerInfoEvent.PlayerLogOutEvent;
@@ -14,7 +15,6 @@ import com.wynntils.mc.event.PlayerInfoFooterChangedEvent;
 import com.wynntils.mc.event.PlayerTeleportEvent;
 import com.wynntils.models.worlds.event.WorldStateEvent;
 import com.wynntils.models.worlds.type.WorldState;
-import com.wynntils.utils.mc.ComponentUtils;
 import com.wynntils.utils.mc.PosUtils;
 import java.util.List;
 import java.util.UUID;
@@ -29,13 +29,16 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 public final class WorldStateModel extends Model {
     private static final UUID WORLD_NAME_UUID = UUID.fromString("16ff7452-714f-3752-b3cd-c3cb2068f6af");
     private static final Pattern WORLD_NAME = Pattern.compile("^§f {2}§lGlobal \\[(.*)\\]$");
+    private static final Pattern HOUSING_NAME = Pattern.compile("^§f  §l([^§\"\\\\]{1,18})$");
     private static final Pattern HUB_NAME = Pattern.compile("^\n§6§l play.wynncraft.com \n$");
     private static final Position CHARACTER_SELECTION_POSITION = new PositionImpl(-1337.5, 16.2, -1120.5);
     private static final Pattern WYNNCRAFT_SERVER_PATTERN = Pattern.compile("^(.*)\\.wynncraft\\.(?:com|net|org)$");
     private static final String WYNNCRAFT_BETA_NAME = "beta";
+    private static final StyledText CHARACTER_SELECTION_TITLE = StyledText.fromString("§8§lSelect a Character");
 
-    private String currentTabListFooter = "";
+    private StyledText currentTabListFooter = StyledText.EMPTY;
     private String currentWorldName = "";
+    private long serverJoinTimestamp = 0;
     private boolean onBetaServer;
     private boolean hasJoinedAnyWorld = false;
 
@@ -68,6 +71,9 @@ public final class WorldStateModel extends Model {
         // Switch state before sending event
         currentState = newState;
         currentWorldName = newWorldName;
+        if (newState == WorldState.WORLD) {
+            serverJoinTimestamp = System.currentTimeMillis();
+        }
         WynntilsMod.postEvent(new WorldStateEvent(newState, oldState, newWorldName, isFirstJoinWorld));
     }
 
@@ -91,7 +97,7 @@ public final class WorldStateModel extends Model {
         String host = e.getHost();
         onBetaServer = host.equals(WYNNCRAFT_BETA_NAME);
         setState(WorldState.CONNECTING);
-        currentTabListFooter = "";
+        currentTabListFooter = StyledText.EMPTY;
     }
 
     @SubscribeEvent
@@ -116,20 +122,20 @@ public final class WorldStateModel extends Model {
     @SubscribeEvent
     public void onMenuOpened(MenuEvent.MenuOpenedEvent e) {
         if (e.getMenuType() == MenuType.GENERIC_9x3
-                && ComponentUtils.getCoded(e.getTitle()).equals("§8§lSelect a Character")) {
+                && StyledText.fromComponent(e.getTitle()).equals(CHARACTER_SELECTION_TITLE)) {
             setState(WorldState.CHARACTER_SELECTION);
         }
     }
 
     @SubscribeEvent
     public void onTabListFooter(PlayerInfoFooterChangedEvent e) {
-        String footer = e.getFooter();
+        StyledText footer = e.getFooter();
         if (footer.equals(currentTabListFooter)) return;
 
         currentTabListFooter = footer;
 
         if (!footer.isEmpty()) {
-            if (HUB_NAME.matcher(footer).find()) {
+            if (footer.getMatcher(HUB_NAME).find()) {
                 setState(WorldState.HUB);
             }
         }
@@ -140,16 +146,30 @@ public final class WorldStateModel extends Model {
         if (!e.getId().equals(WORLD_NAME_UUID)) return;
 
         Component displayName = e.getDisplayName();
-        String name = ComponentUtils.getCoded(displayName);
-        Matcher m = WORLD_NAME.matcher(name);
+        StyledText name = StyledText.fromComponent(displayName);
+        Matcher m = name.getMatcher(WORLD_NAME);
+        if (setWorldIfMatched(m)) return;
+        // must check in this order as housing name regex matches anything that WORLD_NAME would match, housing names
+        // need to exclude world names.
+        Matcher housingNameMatcher = name.getMatcher(HOUSING_NAME);
+        setWorldIfMatched(housingNameMatcher);
+    }
+
+    private boolean setWorldIfMatched(Matcher m) {
         if (m.find()) {
             String worldName = m.group(1);
             setState(WorldState.WORLD, worldName, !hasJoinedAnyWorld);
             hasJoinedAnyWorld = true;
+            return true;
         }
+        return false;
     }
 
     public String getCurrentWorldName() {
         return currentWorldName;
+    }
+
+    public long getServerJoinTimestamp() {
+        return serverJoinTimestamp;
     }
 }

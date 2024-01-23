@@ -1,10 +1,11 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.mc.event;
 
 import com.google.common.base.Preconditions;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -118,6 +119,20 @@ public class PlayerInteractEvent extends PlayerEvent {
 
         public EntityHitResult getEntityHitResult() {
             return entityHitResult;
+        }
+    }
+
+    @Cancelable
+    public static class TryBreak extends Interact {
+        private final BlockPos pos;
+
+        public TryBreak(BlockPos pos) {
+            super(Minecraft.getInstance().player, null, null);
+            this.pos = pos;
+        }
+
+        public BlockPos getPos() {
+            return pos;
         }
     }
 }

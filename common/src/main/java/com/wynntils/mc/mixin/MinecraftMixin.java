@@ -1,6 +1,6 @@
 /*
- * Copyright © Wynntils 2021.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2021-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.mc.mixin;
 
@@ -33,7 +33,7 @@ public abstract class MinecraftMixin {
         if (screen == null) return;
 
         ScreenOpenedEvent.Pre event = new ScreenOpenedEvent.Pre(screen);
-        MixinHelper.post(event);
+        MixinHelper.postAlways(event);
         if (event.isCanceled()) {
             ci.cancel();
         }

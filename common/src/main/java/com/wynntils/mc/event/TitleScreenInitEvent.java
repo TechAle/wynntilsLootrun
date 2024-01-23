@@ -1,13 +1,13 @@
 /*
- * Copyright © Wynntils 2021.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2021-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.mc.event;
 
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraftforge.eventbus.api.Event;
 
-/** Fired on initialization of {@link TitleScreen} */
+/** Fired on the first initialization of {@link TitleScreen} */
 public abstract class TitleScreenInitEvent extends Event {
     private final TitleScreen titleScreen;
 

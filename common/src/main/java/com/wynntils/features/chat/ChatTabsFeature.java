@@ -1,32 +1,37 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.features.chat;
 
 import com.google.common.collect.Sets;
-import com.wynntils.core.chat.ChatTab;
 import com.wynntils.core.components.Managers;
-import com.wynntils.core.config.Category;
-import com.wynntils.core.config.ConfigCategory;
-import com.wynntils.core.config.ConfigHolder;
-import com.wynntils.core.config.HiddenConfig;
-import com.wynntils.core.config.RegisterConfig;
-import com.wynntils.core.features.Feature;
+import com.wynntils.core.components.Services;
+import com.wynntils.core.consumers.features.Feature;
+import com.wynntils.core.persisted.Persisted;
+import com.wynntils.core.persisted.config.Category;
+import com.wynntils.core.persisted.config.Config;
+import com.wynntils.core.persisted.config.ConfigCategory;
+import com.wynntils.core.persisted.config.HiddenConfig;
 import com.wynntils.handlers.chat.event.ChatMessageReceivedEvent;
 import com.wynntils.handlers.chat.type.RecipientType;
+import com.wynntils.mc.event.ChatPacketReceivedEvent;
 import com.wynntils.mc.event.ChatScreenKeyTypedEvent;
+import com.wynntils.mc.event.ChatSentEvent;
 import com.wynntils.mc.event.ClientsideMessageEvent;
+import com.wynntils.mc.event.ScreenFocusEvent;
 import com.wynntils.mc.event.ScreenInitEvent;
 import com.wynntils.mc.event.ScreenRenderEvent;
 import com.wynntils.models.worlds.event.WorldStateEvent;
 import com.wynntils.models.worlds.type.WorldState;
 import com.wynntils.screens.chattabs.widgets.ChatTabAddButton;
 import com.wynntils.screens.chattabs.widgets.ChatTabButton;
+import com.wynntils.services.chat.ChatTab;
 import com.wynntils.utils.mc.KeyboardUtils;
 import com.wynntils.utils.mc.McUtils;
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -35,7 +40,7 @@ import org.lwjgl.glfw.GLFW;
 @ConfigCategory(Category.CHAT)
 public class ChatTabsFeature extends Feature {
     // These should move to ChatTabManager, as Storage
-    @RegisterConfig
+    @Persisted
     public final HiddenConfig<List<ChatTab>> chatTabs = new HiddenConfig<>(new ArrayList<>(List.of(
             new ChatTab("All", false, null, null, null),
             new ChatTab("Global", false, null, Sets.newHashSet(RecipientType.GLOBAL), null),
@@ -45,13 +50,13 @@ public class ChatTabsFeature extends Feature {
             new ChatTab("Private", false, "/r  ", Sets.newHashSet(RecipientType.PRIVATE), null),
             new ChatTab("Shout", false, null, Sets.newHashSet(RecipientType.SHOUT), null))));
 
-    // We do this here, and not in Models.ChatTab to not introduce a feature-model dependency.
+    // We do this here, and not in Services.ChatTab to not introduce a feature-model dependency.
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onChatReceived(ChatMessageReceivedEvent event) {
         // We are already sending this message to every matching tab, so we can cancel it.
         event.setCanceled(true);
 
-        Managers.ChatTab.matchMessage(event);
+        Services.ChatTab.matchMessage(event);
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -61,14 +66,12 @@ public class ChatTabsFeature extends Feature {
 
         boolean isRenderThread = McUtils.mc().isSameThread();
         if (isRenderThread) {
-            Managers.ChatTab.matchMessage(event);
+            Services.ChatTab.matchMessage(event);
         } else {
             // It can happen that client-side messages are sent from some other thread
             // That will cause race conditions with vanilla ChatComponent code, so
             // schedule this update by the renderer thread instead
-            Managers.TickScheduler.scheduleNextTick(() -> {
-                Managers.ChatTab.matchMessage(event);
-            });
+            Managers.TickScheduler.scheduleNextTick(() -> Services.ChatTab.matchMessage(event));
         }
     }
 
@@ -80,7 +83,7 @@ public class ChatTabsFeature extends Feature {
             chatScreen.addRenderableWidget(new ChatTabAddButton(xOffset + 2, chatScreen.height - 35, 12, 13));
             xOffset += 15;
 
-            for (ChatTab chatTab : Managers.ChatTab.getTabs().toList()) {
+            for (ChatTab chatTab : Services.ChatTab.getTabs().toList()) {
                 chatScreen.addRenderableWidget(new ChatTabButton(xOffset + 2, chatScreen.height - 35, 40, 13, chatTab));
                 xOffset += 43;
             }
@@ -88,11 +91,27 @@ public class ChatTabsFeature extends Feature {
     }
 
     @SubscribeEvent
-    public void onWorldStateChange(WorldStateEvent event) {
-        if (event.getNewState() != WorldState.WORLD) return;
-        if (Managers.ChatTab.getFocusedTab() != null) return;
+    public void onScreenFocusChange(ScreenFocusEvent event) {
+        if (!(event.getScreen() instanceof ChatScreen)) return;
 
-        Managers.ChatTab.resetFocusedTab();
+        GuiEventListener guiEventListener = event.getGuiEventListener();
+
+        // These should not be focused
+        if (guiEventListener instanceof ChatTabButton || guiEventListener instanceof ChatTabAddButton) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public void onWorldStateChange(WorldStateEvent event) {
+        if (event.getNewState() == WorldState.NOT_CONNECTED) {
+            Services.ChatTab.resetFocusedTab();
+            return;
+        }
+
+        if (event.getNewState() == WorldState.WORLD && Services.ChatTab.getFocusedTab() == null) {
+            Services.ChatTab.refocusFirstTab();
+        }
     }
 
     @SubscribeEvent
@@ -112,24 +131,60 @@ public class ChatTabsFeature extends Feature {
         if (!KeyboardUtils.isShiftDown()) return;
 
         event.setCanceled(true);
-        Managers.ChatTab.setFocusedTab(Managers.ChatTab.getNextFocusedTab());
+        Services.ChatTab.setFocusedTab(Services.ChatTab.getNextFocusedTab());
+    }
+
+    @SubscribeEvent
+    public void onChatSend(ChatSentEvent event) {
+        if (Services.ChatTab.getFocusedTab() == null) return;
+        if (event.getMessage().isBlank()) return;
+
+        ChatTab focusedTab = Services.ChatTab.getFocusedTab();
+        if (focusedTab.getAutoCommand() != null && !focusedTab.getAutoCommand().isBlank()) {
+            event.setCanceled(true);
+
+            String autoCommand = focusedTab.getAutoCommand();
+            autoCommand = autoCommand.startsWith("/") ? autoCommand.substring(1) : autoCommand;
+            McUtils.sendCommand(autoCommand + event.getMessage());
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onChatPacket(ChatPacketReceivedEvent.Player event) {
+        if (Services.ChatTab.getFocusedTab() == null) return;
+
+        // Cancel all remaining messages, if we have a focused tab, we will handle it.
+        event.setCanceled(true);
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onChatPacket(ChatPacketReceivedEvent.System event) {
+        if (Services.ChatTab.getFocusedTab() == null) return;
+
+        // Cancel all remaining messages, if we have a focused tab, we will handle it.
+        event.setCanceled(true);
     }
 
     @Override
     public void onEnable() {
-        Managers.ChatTab.resetFocusedTab();
+        Services.ChatTab.refocusFirstTab();
     }
 
     @Override
-    protected void onConfigUpdate(ConfigHolder configHolder) {
-        Managers.ChatTab.resetFocusedTab();
+    public void onDisable() {
+        Services.ChatTab.resetFocusedTab();
+    }
+
+    @Override
+    protected void onConfigUpdate(Config<?> config) {
+        Services.ChatTab.refocusFirstTab();
 
         if ((McUtils.mc().screen instanceof ChatScreen chatScreen)) {
             // Reload chat tab buttons
             chatScreen.init(
                     McUtils.mc(),
-                    McUtils.mc().getWindow().getGuiScaledWidth(),
-                    McUtils.mc().getWindow().getGuiScaledHeight());
+                    McUtils.window().getGuiScaledWidth(),
+                    McUtils.window().getGuiScaledHeight());
         }
     }
 }

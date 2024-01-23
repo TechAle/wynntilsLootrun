@@ -1,6 +1,6 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.mc.mixin;
 
@@ -13,6 +13,7 @@ import com.wynntils.mc.event.UseItemEvent;
 import com.wynntils.utils.mc.McUtils;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -25,6 +26,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import net.minecraft.core.Direction;
 
 @Mixin(MultiPlayerGameMode.class)
 public abstract class MultiPlayerGameModeMixin {
@@ -78,6 +80,16 @@ public abstract class MultiPlayerGameModeMixin {
     }
 
     @Inject(
+            method = "startDestroyBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z",
+            at = @At("HEAD")
+    )
+    public void onBreak(BlockPos pos, Direction dir, CallbackInfoReturnable<Boolean> cir) {
+        PlayerInteractEvent.TryBreak event = new PlayerInteractEvent.TryBreak(pos);
+        MixinHelper.post(event);
+
+    }
+
+    @Inject(
             method =
                     "interactAt(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/EntityHitResult;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;",
             at = @At("HEAD"),
@@ -122,6 +134,8 @@ public abstract class MultiPlayerGameModeMixin {
             ci.cancel();
         }
     }
+
+    
 
     // As of 1.19.3, this seems to be the only method which sends carried item update packets to the server.
     // Please look into this and confirm this is still the case, in future versions.

@@ -1,6 +1,6 @@
 /*
- * Copyright © Wynntils 2021-2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2021-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.features.ui;
 
@@ -9,18 +9,18 @@ import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.wynntils.core.WynntilsMod;
-import com.wynntils.core.config.Category;
-import com.wynntils.core.config.Config;
-import com.wynntils.core.config.ConfigCategory;
-import com.wynntils.core.config.RegisterConfig;
-import com.wynntils.core.features.Feature;
+import com.wynntils.core.consumers.features.Feature;
+import com.wynntils.core.persisted.Persisted;
+import com.wynntils.core.persisted.config.Category;
+import com.wynntils.core.persisted.config.Config;
+import com.wynntils.core.persisted.config.ConfigCategory;
+import com.wynntils.mc.event.ScreenInitEvent;
 import com.wynntils.mc.event.TitleScreenInitEvent;
-import com.wynntils.utils.StringUtils;
+import com.wynntils.utils.mc.McUtils;
 import com.wynntils.utils.render.Texture;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.ConnectScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -36,42 +36,77 @@ import org.apache.commons.lang3.Validate;
 
 @ConfigCategory(Category.UI)
 public class WynncraftButtonFeature extends Feature {
-    private static final String GAME_SERVER = "play.wynncraft.com";
-    private static final String LOBBY_SERVER = "lobby.wynncraft.com";
+    private static final String WYNNCRAFT_DOMAIN = ".wynncraft.com";
+    private boolean firstTitleScreenInit = true;
 
-    @RegisterConfig
-    public final Config<Boolean> connectToLobby = new Config<>(false);
+    @Persisted
+    public final Config<ServerType> serverType = new Config<>(ServerType.GAME);
+
+    @Persisted
+    public final Config<Boolean> autoConnect = new Config<>(false);
+
+    @Persisted
+    public final Config<Boolean> loadResourcePack = new Config<>(true);
 
     @SubscribeEvent
-    public void onTitleScreenInit(TitleScreenInitEvent.Post e) {
-        ServerData wynncraftServer =
-                new ServerData("Monumenta", "server.playmonumenta.com", false);
-        wynncraftServer.setResourcePackStatus(ServerData.ServerPackStatus.ENABLED);
+    public void onTitleScreenInit(TitleScreenInitEvent.Post event) {
+        TitleScreen titleScreen = event.getTitleScreen();
 
-        TitleScreen titleScreen = e.getTitleScreen();
+        addWynncraftButton(titleScreen);
+    }
+
+    @SubscribeEvent
+    public void onScreenInit(ScreenInitEvent event) {
+        if (!(event.getScreen() instanceof TitleScreen titleScreen)) return;
+
+        if (firstTitleScreenInit && autoConnect.get()) {
+            firstTitleScreenInit = false;
+            ServerData wynncraftServer = getWynncraftServer();
+            connectToServer(wynncraftServer);
+            return;
+        }
+
+        addWynncraftButton(titleScreen);
+    }
+
+    private void addWynncraftButton(TitleScreen titleScreen) {
+        if (titleScreen.children.stream().anyMatch(child -> child instanceof WynncraftButton)) return;
+
+        ServerData wynncraftServer = getWynncraftServer();
+
         WynncraftButton wynncraftButton = new WynncraftButton(
                 titleScreen, wynncraftServer, titleScreen.width / 2 + 104, titleScreen.height / 4 + 48 + 24);
         titleScreen.addRenderableWidget(wynncraftButton);
     }
 
+    private ServerData getWynncraftServer() {
+        ServerData wynncraftServer =
+                new ServerData("Wynncraft", "server.playmonumenta.com", false);
+
+        return wynncraftServer;
+    }
+
+    private static void connectToServer(ServerData serverData) {
+        ConnectScreen.startConnecting(
+                McUtils.mc().screen, McUtils.mc(), ServerAddress.parseString(serverData.ip), serverData);
+    }
+
     private static class WynncraftButton extends Button {
-        private final Screen backScreen;
         private final ServerData serverData;
         private final ServerIcon serverIcon;
 
         // TODO tooltip
         WynncraftButton(Screen backScreen, ServerData serverData, int x, int y) {
-            super(x, y, 20, 20, Component.translatable(""), WynncraftButton::onPress, Button.DEFAULT_NARRATION);
+            super(x, y, 20, 20, Component.literal(""), WynncraftButton::onPress, Button.DEFAULT_NARRATION);
             this.serverData = serverData;
-            this.backScreen = backScreen;
 
             this.serverIcon = new ServerIcon(serverData);
             this.serverIcon.loadResource(false);
         }
 
         @Override
-        public void renderButton(PoseStack matrices, int mouseX, int mouseY, float partialTicks) {
-            super.renderButton(matrices, mouseX, mouseY, partialTicks);
+        public void renderWidget(PoseStack matrices, int mouseX, int mouseY, float partialTicks) {
+            super.renderWidget(matrices, mouseX, mouseY, partialTicks);
 
             if (serverIcon == null || serverIcon.getServerIconLocation() == null) {
                 return;
@@ -85,12 +120,7 @@ public class WynncraftButtonFeature extends Feature {
 
         protected static void onPress(Button button) {
             if (!(button instanceof WynncraftButton wynncraftButton)) return;
-
-            ConnectScreen.startConnecting(
-                    wynncraftButton.backScreen,
-                    Minecraft.getInstance(),
-                    ServerAddress.parseString(wynncraftButton.serverData.ip),
-                    wynncraftButton.serverData);
+            connectToServer(wynncraftButton.serverData);
         }
     }
 
@@ -124,7 +154,7 @@ public class WynncraftButtonFeature extends Feature {
             // If someone converts this to get the actual ServerData used by the gui, check
             // ServerData#pinged here and
             // set it later
-            if (allowStale && Minecraft.getInstance().getTextureManager().getTexture(destination, null) != null) {
+            if (allowStale && McUtils.mc().getTextureManager().getTexture(destination, null) != null) {
                 serverIconLocation = destination;
                 onDone();
                 return;
@@ -167,7 +197,7 @@ public class WynncraftButtonFeature extends Feature {
         // Modified from
         // net.minecraft.client.gui.screens.multiplayer.ServerSelectionList#uploadServerIcon
         private synchronized void loadServerIcon(ResourceLocation destination) {
-            ByteBuffer iconBytes = StringUtils.decodeBase64(server.getIconB64());
+            ByteBuffer iconBytes = ByteBuffer.wrap(server.getIconBytes());
             // failed to ping server or icon wasn't sent
             if (iconBytes == null) {
                 WynntilsMod.warn("Unable to load icon");
@@ -181,16 +211,27 @@ public class WynncraftButtonFeature extends Feature {
 
                 synchronized (this) {
                     RenderSystem.recordRenderCall(() -> {
-                        Minecraft.getInstance()
-                                .getTextureManager()
-                                .register(destination, new DynamicTexture(nativeImage));
+                        McUtils.mc().getTextureManager().register(destination, new DynamicTexture(nativeImage));
                         serverIconLocation = destination;
                     });
                 }
             } catch (IOException e) {
-                WynntilsMod.error("Unable to convert image from base64: " + server.getIconB64(), e);
+                WynntilsMod.error("Unable to read server image: " + server.name, e);
                 serverIconLocation = FALLBACK;
             }
+        }
+    }
+
+    private enum ServerType {
+        LOBBY("lobby"),
+        GAME("play"),
+        MEDIA("media"),
+        BETA("beta");
+
+        private final String serverAddressPrefix;
+
+        ServerType(String serverAddressPrefix) {
+            this.serverAddressPrefix = serverAddressPrefix;
         }
     }
 }

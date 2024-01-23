@@ -1,6 +1,6 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.features.commands;
 
@@ -14,11 +14,11 @@ import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.RootCommandNode;
 import com.wynntils.core.components.Managers;
 import com.wynntils.core.components.Models;
-import com.wynntils.core.config.Category;
-import com.wynntils.core.config.Config;
-import com.wynntils.core.config.ConfigCategory;
-import com.wynntils.core.config.RegisterConfig;
-import com.wynntils.core.features.Feature;
+import com.wynntils.core.consumers.features.Feature;
+import com.wynntils.core.persisted.Persisted;
+import com.wynntils.core.persisted.config.Category;
+import com.wynntils.core.persisted.config.Config;
+import com.wynntils.core.persisted.config.ConfigCategory;
 import com.wynntils.mc.event.CommandsAddedEvent;
 import com.wynntils.utils.mc.McUtils;
 import net.minecraft.commands.CommandSourceStack;
@@ -35,13 +35,20 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
  */
 @ConfigCategory(Category.COMMANDS)
 public class AddCommandExpansionFeature extends Feature {
+    private static final SuggestionProvider<CommandSourceStack> PLAYER_NAME_SUGGESTION_PROVIDER =
+            (context, builder) -> SharedSuggestionProvider.suggest(Models.Player.getAllPlayerNames(), builder);
 
+    private static final SuggestionProvider<CommandSourceStack> FRIEND_NAME_SUGGESTION_PROVIDER =
+            (context, builder) -> SharedSuggestionProvider.suggest(Models.Friends.getFriends(), builder);
 
+    private static final SuggestionProvider<CommandSourceStack> PARTY_NAME_SUGGESTION_PROVIDER =
+            (context, builder) -> SharedSuggestionProvider.suggest(
+                    Models.Party.getPartyMembers().stream().filter(p -> !p.equals(McUtils.playerName())), builder);
 
-    @RegisterConfig
+    @Persisted
     public final Config<Boolean> includeDeprecatedCommands = new Config<>(false);
 
-    @RegisterConfig
+    @Persisted
     public final Config<AliasCommandLevel> includeAliases = new Config<>(AliasCommandLevel.SHORT_FORMS);
 
     @SubscribeEvent
@@ -50,6 +57,16 @@ public class AddCommandExpansionFeature extends Feature {
 
         addArgumentlessCommandNodes(root);
         addChangetagCommandNode(root);
+        addFriendCommandNode(root);
+        addGuildCommandNode(root);
+        addIgnoreCommandNode(root);
+        addHousingCommandNode(root);
+        addMessagingCommandNodes(root);
+        addMiscCommandNodes(root);
+        addParticlesCommandNode(root);
+        addPartyCommandNode(root);
+        addPlayerCommandNodes(root);
+        addToggleCommandNode(root);
 
         if (includeDeprecatedCommands.get()) {
             addDeprecatedCommandNodes(root);
@@ -193,8 +210,272 @@ public class AddCommandExpansionFeature extends Feature {
                         .build());
     }
 
+    private void addFriendCommandNode(RootCommandNode<SharedSuggestionProvider> root) {
+        CommandNode<CommandSourceStack> node = literal("friend")
+                .then(literal("list"))
+                .then(literal("online"))
+                .then(literal("add")
+                        .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER)))
+                .then(literal("remove")
+                        .then(argument("player", StringArgumentType.word()).suggests(FRIEND_NAME_SUGGESTION_PROVIDER)))
+                .build();
+        addNode(root, node);
 
+        addAlias(root, node, "f", AliasCommandLevel.SHORT_FORMS);
+        addAlias(root, node, "friends", AliasCommandLevel.ALL);
+        addAlias(root, node, "buddy", AliasCommandLevel.ALL);
+        addAlias(root, node, "buddies", AliasCommandLevel.ALL);
+    }
 
+    private void addGuildCommandNode(RootCommandNode<SharedSuggestionProvider> root) {
+        CommandNode<CommandSourceStack> node = literal("guild")
+                .then(literal("attack"))
+                .then(literal("contribute"))
+                .then(literal("defend"))
+                .then(literal("invite")
+                        .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER)))
+                .then(literal("join").then(argument("tag", StringArgumentType.greedyString())))
+                .then(literal("kick")
+                        .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER)))
+                .then(literal("leaderboard"))
+                .then(literal("leave"))
+                .then(literal("list"))
+                .then(literal("log"))
+                .then(literal("manage"))
+                .then(literal("rank")
+                        .then(argument("player", EntityArgument.players())
+                                .suggests(PLAYER_NAME_SUGGESTION_PROVIDER)
+                                .then(argument("rank", StringArgumentType.string()))))
+                .then(literal("rewards"))
+                .then(literal("stats"))
+                .then(literal("territory"))
+                .then(literal("xp").then(argument("amount", IntegerArgumentType.integer())))
+                .build();
+        addNode(root, node);
+
+        addAlias(root, node, "gu", AliasCommandLevel.SHORT_FORMS);
+        addAlias(root, node, "guilds", AliasCommandLevel.ALL);
+    }
+
+    private void addIgnoreCommandNode(RootCommandNode<SharedSuggestionProvider> root) {
+        addNode(
+                root,
+                literal("ignore")
+                        .then(literal("add")
+                                .then(argument("player", EntityArgument.players())
+                                        .suggests(PLAYER_NAME_SUGGESTION_PROVIDER)))
+                        .then(literal("remove")
+                                .then(argument("player", EntityArgument.players())
+                                        .suggests(PLAYER_NAME_SUGGESTION_PROVIDER)))
+                        .build());
+    }
+
+    private void addHousingCommandNode(RootCommandNode<SharedSuggestionProvider> root) {
+        CommandNode<CommandSourceStack> node = literal("housing")
+                .then(literal("allowedit")
+                        .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER)))
+                .then(literal("ban")
+                        .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER)))
+                .then(literal("disallowedit")
+                        .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER)))
+                .then(literal("edit"))
+                .then(literal("invite")
+                        .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER)))
+                .then(literal("kick")
+                        .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER)))
+                .then(literal("kickall"))
+                .then(literal("leave"))
+                .then(literal("public"))
+                .then(literal("unban")
+                        .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER)))
+                .then(literal("visit"))
+                .build();
+        addNode(root, node);
+
+        addAlias(root, node, "is", AliasCommandLevel.SHORT_FORMS);
+        addAlias(root, node, "hs", AliasCommandLevel.SHORT_FORMS);
+        addAlias(root, node, "home", AliasCommandLevel.ALL);
+        addAlias(root, node, "house", AliasCommandLevel.ALL);
+        addAlias(root, node, "island", AliasCommandLevel.ALL);
+        addAlias(root, node, "plot", AliasCommandLevel.ALL);
+    }
+
+    private void addMessagingCommandNodes(RootCommandNode<SharedSuggestionProvider> root) {
+        addNode(
+                root,
+                literal("g")
+                        .then(argument("msg", StringArgumentType.greedyString()))
+                        .build());
+
+        addNode(
+                root,
+                literal("p")
+                        .then(argument("msg", StringArgumentType.greedyString()))
+                        .build());
+
+        addNode(
+                root,
+                literal("r")
+                        .then(argument("msg", StringArgumentType.greedyString()))
+                        .build());
+
+        CommandNode<CommandSourceStack> node = literal("msg")
+                .then(argument("player", EntityArgument.players())
+                        .suggests(PLAYER_NAME_SUGGESTION_PROVIDER)
+                        .then(argument("msg", StringArgumentType.greedyString())))
+                .build();
+        addNode(root, node);
+    }
+
+    private void addMiscCommandNodes(RootCommandNode<SharedSuggestionProvider> root) {
+        addNode(
+                root,
+                literal("report")
+                        .then(argument("player", EntityArgument.players())
+                                .suggests(PLAYER_NAME_SUGGESTION_PROVIDER)
+                                .then(argument("reason", StringArgumentType.greedyString())))
+                        .build());
+
+        addNode(
+                root,
+                literal("switch")
+                        .then(argument("world", IntegerArgumentType.integer()))
+                        .build());
+
+        addNode(
+                root,
+                literal("relore")
+                        .then(argument("lore", StringArgumentType.greedyString()))
+                        .build());
+
+        // first option is 0; not really supposed to be run by users
+        addNode(
+                root,
+                literal("dialogue")
+                        .then(argument("option", IntegerArgumentType.integer()))
+                        .build());
+
+        // not really supposed to be run by users
+        addNode(
+                root,
+                literal("thankyou")
+                        .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER))
+                        .build());
+
+        // "renameitem" aliases
+        CommandNode<CommandSourceStack> renameitemNode = literal("renameitem")
+                .then(argument("name", StringArgumentType.greedyString()))
+                .build();
+        addNode(root, renameitemNode);
+
+        addAlias(root, renameitemNode, "renameitems", AliasCommandLevel.ALL);
+
+        // "renameitem" aliases
+        CommandNode<CommandSourceStack> renamepetNode = literal("renamepet")
+                .then(argument("name", StringArgumentType.greedyString()))
+                .build();
+        addNode(root, renamepetNode);
+
+        addAlias(root, renamepetNode, "renamepets", AliasCommandLevel.ALL);
+    }
+
+    private void addParticlesCommandNode(RootCommandNode<SharedSuggestionProvider> root) {
+        CommandNode<CommandSourceStack> node = literal("particles")
+                .then(literal("off"))
+                .then(literal("low"))
+                .then(literal("medium"))
+                .then(literal("high"))
+                .then(literal("veryhigh"))
+                .then(literal("highest"))
+                .then(argument("particles_per_tick", IntegerArgumentType.integer()))
+                .build();
+        addNode(root, node);
+        addAlias(root, node, "pq", AliasCommandLevel.SHORT_FORMS);
+        addAlias(root, node, "particlequality", AliasCommandLevel.ALL);
+        addAlias(root, node, "particlesquality", AliasCommandLevel.ALL);
+    }
+
+    private void addPartyCommandNode(RootCommandNode<SharedSuggestionProvider> root) {
+        CommandNode<CommandSourceStack> node = literal("party")
+                .then(literal("ban")
+                        .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER)))
+                .then(literal("create"))
+                .then(literal("disband"))
+                .then(literal("finder"))
+                .then(literal("invite")
+                        .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER)))
+                .then(literal("join")
+                        .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER)))
+                .then(literal("kick")
+                        .then(argument("player", EntityArgument.players()).suggests(PARTY_NAME_SUGGESTION_PROVIDER)))
+                .then(literal("leave"))
+                .then(literal("list"))
+                .then(literal("promote")
+                        .then(argument("player", EntityArgument.players()).suggests(PARTY_NAME_SUGGESTION_PROVIDER)))
+                .then(literal("unban")
+                        .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER)))
+                .build();
+        addNode(root, node);
+
+        addAlias(root, node, "pa", AliasCommandLevel.SHORT_FORMS);
+        addAlias(root, node, "group", AliasCommandLevel.ALL);
+    }
+
+    private void addPlayerCommandNodes(RootCommandNode<SharedSuggestionProvider> root) {
+        CommandNode<CommandSourceStack> duelNode = literal("duel")
+                .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER))
+                .build();
+        addNode(root, duelNode);
+        addAlias(root, duelNode, "d", AliasCommandLevel.SHORT_FORMS);
+
+        CommandNode<CommandSourceStack> tradeNode = literal("trade")
+                .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER))
+                .build();
+        addNode(root, tradeNode);
+        addAlias(root, tradeNode, "tr", AliasCommandLevel.SHORT_FORMS);
+
+        addNode(
+                root,
+                literal("find")
+                        .then(argument("player", EntityArgument.players()).suggests(PLAYER_NAME_SUGGESTION_PROVIDER))
+                        .build());
+    }
+
+    private void addToggleCommandNode(RootCommandNode<SharedSuggestionProvider> root) {
+        addNode(
+                root,
+                literal("toggle")
+                        .then(literal("100"))
+                        .then(literal("attacksound"))
+                        .then(literal("autojoin"))
+                        .then(literal("autotracking"))
+                        .then(literal("beacon"))
+                        .then(literal("blood"))
+                        .then(literal("bombbell"))
+                        .then(literal("combatbar"))
+                        .then(literal("friendpopups"))
+                        .then(literal("ghosts")
+                                .then(literal("none"))
+                                .then(literal("low"))
+                                .then(literal("medium"))
+                                .then(literal("high"))
+                                .then(literal("all")))
+                        .then(literal("guildjoin"))
+                        .then(literal("guildpopups"))
+                        .then(literal("insults"))
+                        .then(literal("music"))
+                        .then(literal("outlines"))
+                        .then(literal("popups"))
+                        .then(literal("pouchmsg"))
+                        .then(literal("pouchpickup"))
+                        .then(literal("queststartbeacon"))
+                        .then(literal("rpwarning"))
+                        .then(literal("sb"))
+                        .then(literal("swears"))
+                        .then(literal("vet"))
+                        .then(literal("war"))
+                        .build());
+    }
 
     private void addDeprecatedCommandNodes(RootCommandNode<SharedSuggestionProvider> root) {
         // "legacystore" aliases

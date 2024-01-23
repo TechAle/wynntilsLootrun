@@ -1,14 +1,15 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.screens.chattabs.widgets;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.wynntils.core.chat.ChatTab;
-import com.wynntils.core.components.Managers;
+import com.wynntils.core.components.Services;
+import com.wynntils.core.text.StyledText;
 import com.wynntils.screens.base.widgets.WynntilsButton;
 import com.wynntils.screens.chattabs.ChatTabEditingScreen;
+import com.wynntils.services.chat.ChatTab;
 import com.wynntils.utils.colors.CommonColors;
 import com.wynntils.utils.colors.CustomColor;
 import com.wynntils.utils.mc.McUtils;
@@ -39,7 +40,7 @@ public class ChatTabButton extends WynntilsButton {
         FontRenderer.getInstance()
                 .renderAlignedTextInBox(
                         poseStack,
-                        tab.getName(),
+                        StyledText.fromString(tab.getName()),
                         getX() + 1,
                         getX() + width,
                         getY() + 1,
@@ -52,9 +53,9 @@ public class ChatTabButton extends WynntilsButton {
     }
 
     private CustomColor getTabColor() {
-        if (Managers.ChatTab.getFocusedTab() == tab) return CommonColors.GREEN;
+        if (Services.ChatTab.getFocusedTab() == tab) return CommonColors.GREEN;
 
-        return Managers.ChatTab.hasUnreadMessages(tab) ? CommonColors.YELLOW : CommonColors.WHITE;
+        return Services.ChatTab.hasUnreadMessages(tab) ? CommonColors.YELLOW : CommonColors.WHITE;
     }
 
     @Override
@@ -62,11 +63,14 @@ public class ChatTabButton extends WynntilsButton {
         if (!isMouseOver(mouseX, mouseY)) return false;
 
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            Managers.ChatTab.setFocusedTab(tab);
+            Services.ChatTab.setFocusedTab(tab);
         } else if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
             McUtils.mc().setScreen(ChatTabEditingScreen.create(tab));
         }
-        return true;
+
+        // Hack: We should return true here,
+        //       but we don't want this button to be focused
+        return false;
     }
 
     // unused

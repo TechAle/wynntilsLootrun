@@ -1,27 +1,29 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.screens.settings;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.wynntils.core.components.Managers;
-import com.wynntils.core.config.Category;
-import com.wynntils.core.config.ConfigHolder;
-import com.wynntils.core.features.Configurable;
-import com.wynntils.core.features.Feature;
-import com.wynntils.core.features.Translatable;
-import com.wynntils.core.features.overlays.Overlay;
+import com.wynntils.core.consumers.features.Configurable;
+import com.wynntils.core.consumers.features.Feature;
+import com.wynntils.core.consumers.overlays.Overlay;
+import com.wynntils.core.consumers.screens.WynntilsScreen;
+import com.wynntils.core.persisted.Translatable;
+import com.wynntils.core.persisted.config.Category;
+import com.wynntils.core.persisted.config.Config;
+import com.wynntils.core.text.StyledText;
 import com.wynntils.screens.base.TextboxScreen;
-import com.wynntils.screens.base.WynntilsScreen;
 import com.wynntils.screens.base.widgets.SearchWidget;
 import com.wynntils.screens.base.widgets.TextInputBoxWidget;
 import com.wynntils.screens.base.widgets.WynntilsButton;
+import com.wynntils.screens.settings.widgets.ApplyButton;
 import com.wynntils.screens.settings.widgets.CategoryButton;
-import com.wynntils.screens.settings.widgets.ConfigButton;
+import com.wynntils.screens.settings.widgets.CloseButton;
+import com.wynntils.screens.settings.widgets.ConfigTile;
 import com.wynntils.screens.settings.widgets.ConfigurableButton;
-import com.wynntils.screens.settings.widgets.GeneralSettingsButton;
 import com.wynntils.screens.settings.widgets.ScrollButton;
 import com.wynntils.utils.MathUtils;
 import com.wynntils.utils.StringUtils;
@@ -67,7 +69,8 @@ public final class WynntilsBookSettingsScreen extends WynntilsScreen implements 
         super(Component.translatable("screens.wynntils.settingsScreen.name"));
 
         searchWidget = new SearchWidget(
-                95, Texture.SETTING_BACKGROUND.height() - 32, 100, 20, s -> reloadConfigurableButtons(), this);
+                95, Texture.CONFIG_BOOK_BACKGROUND.height() - 32, 100, 20, s -> reloadConfigurableButtons(), this);
+        setFocusedTextInput(searchWidget);
         reloadConfigurableButtons();
     }
 
@@ -81,28 +84,9 @@ public final class WynntilsBookSettingsScreen extends WynntilsScreen implements 
 
         this.addRenderableWidget(searchWidget);
 
-        this.addRenderableWidget(new GeneralSettingsButton(
-                55,
-                Texture.SETTING_BACKGROUND.height() - 30,
-                35,
-                14,
-                Component.translatable("screens.wynntils.settingsScreen.apply"),
-                () -> {
-                    Managers.Config.saveConfig();
-                    this.onClose();
-                },
-                List.of(Component.translatable("screens.wynntils.settingsScreen.apply.description")
-                        .withStyle(ChatFormatting.GREEN))));
+        this.addRenderableWidget(new ApplyButton(this));
 
-        this.addRenderableWidget(new GeneralSettingsButton(
-                15,
-                Texture.SETTING_BACKGROUND.height() - 30,
-                35,
-                14,
-                Component.translatable("screens.wynntils.settingsScreen.close"),
-                this::onClose,
-                List.of(Component.translatable("screens.wynntils.settingsScreen.close.description")
-                        .withStyle(ChatFormatting.DARK_RED))));
+        this.addRenderableWidget(new CloseButton(this));
     }
 
     // region Render
@@ -144,11 +128,11 @@ public final class WynntilsBookSettingsScreen extends WynntilsScreen implements 
         FontRenderer.getInstance()
                 .renderText(
                         poseStack,
-                        name + ": "
+                        StyledText.fromString(name + ": "
                                 + (enabled
                                         ? ChatFormatting.DARK_GREEN + "Enabled"
-                                        : ChatFormatting.DARK_RED + "Disabled"),
-                        Texture.SETTING_BACKGROUND.width() / 2f / 0.8f + 10,
+                                        : ChatFormatting.DARK_RED + "Disabled")),
+                        Texture.CONFIG_BOOK_BACKGROUND.width() / 2f / 0.8f + 10,
                         12,
                         CommonColors.BLACK,
                         HorizontalAlignment.LEFT,
@@ -167,13 +151,6 @@ public final class WynntilsBookSettingsScreen extends WynntilsScreen implements 
 
         configurableListScrollButton.renderWidget(poseStack, adjustedMouseX, adjustedMouseY, partialTick);
 
-        for (int i = configurableScrollOffset * CONFIGURABLES_PER_PAGE;
-                i < Math.min(configurables.size(), (configurableScrollOffset + 1) * CONFIGURABLES_PER_PAGE);
-                i++) {
-            WynntilsButton featureButton = configurables.get(i);
-            featureButton.render(poseStack, adjustedMouseX, adjustedMouseY, partialTick);
-        }
-
         if (configListScrollButton != null) {
             configListScrollButton.renderWidget(poseStack, adjustedMouseX, adjustedMouseY, partialTick);
         }
@@ -185,20 +162,29 @@ public final class WynntilsBookSettingsScreen extends WynntilsScreen implements 
             WynntilsButton configButton = configs.get(i);
             configButton.render(poseStack, adjustedMouseX, adjustedMouseY, partialTick);
         }
+
+        // Render configurable's after configs so tooltip Z levels are correct
+        // Reverse iteration for so tooltip Z levels are correct when rendering
+        for (int i = Math.min(configurables.size(), (configurableScrollOffset + 1) * CONFIGURABLES_PER_PAGE) - 1;
+                i >= configurableScrollOffset * CONFIGURABLES_PER_PAGE;
+                i--) {
+            WynntilsButton featureButton = configurables.get(i);
+            featureButton.render(poseStack, adjustedMouseX, adjustedMouseY, partialTick);
+        }
     }
 
     private static void renderScrollArea(PoseStack poseStack) {
         RenderSystem.enableBlend();
         RenderUtils.drawTexturedRect(
                 poseStack,
-                Texture.SETTING_SCROLL_AREA,
-                (Texture.SETTING_BACKGROUND.width() / 2f - Texture.SETTING_SCROLL_AREA.width()) / 2f,
+                Texture.CONFIG_BOOK_SCROLL_AREA,
+                (Texture.CONFIG_BOOK_BACKGROUND.width() / 2f - Texture.CONFIG_BOOK_SCROLL_AREA.width()) / 2f,
                 10);
         RenderSystem.disableBlend();
     }
 
     private static void renderBg(PoseStack poseStack) {
-        RenderUtils.drawTexturedRect(poseStack, Texture.SETTING_BACKGROUND, 0, 0);
+        RenderUtils.drawTexturedRect(poseStack, Texture.CONFIG_BOOK_BACKGROUND, 0, 0);
     }
 
     // endregion
@@ -206,7 +192,7 @@ public final class WynntilsBookSettingsScreen extends WynntilsScreen implements 
     // region Mouse events
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean doMouseClicked(double mouseX, double mouseY, int button) {
         double adjustedMouseX = mouseX - getTranslationX();
         double adjustedMouseY = mouseY - getTranslationY();
 
@@ -269,7 +255,7 @@ public final class WynntilsBookSettingsScreen extends WynntilsScreen implements 
         double adjustedMouseX = mouseX - getTranslationX();
         double adjustedMouseY = mouseY - getTranslationY();
 
-        if (adjustedMouseX <= Texture.SETTING_BACKGROUND.width() / 2f) {
+        if (adjustedMouseX <= Texture.CONFIG_BOOK_BACKGROUND.width() / 2f) {
             configurableListScrollButton.mouseScrolled(adjustedMouseX, adjustedMouseY, delta);
         } else if (configListScrollButton != null) {
             configListScrollButton.mouseScrolled(adjustedMouseX, adjustedMouseY, delta);
@@ -337,6 +323,12 @@ public final class WynntilsBookSettingsScreen extends WynntilsScreen implements 
     }
 
     // endregion
+
+    @Override
+    public void added() {
+        searchWidget.opened();
+        super.added();
+    }
 
     @Override
     public void onClose() {
@@ -411,9 +403,9 @@ public final class WynntilsBookSettingsScreen extends WynntilsScreen implements 
         configurableListScrollButton = new ScrollButton(
                 23,
                 17,
-                Texture.SETTING_BACKGROUND.height() - 50,
-                Texture.SETTING_SCROLL_BUTTON.width(),
-                Texture.SETTING_SCROLL_BUTTON.height() / 2,
+                Texture.CONFIG_BOOK_BACKGROUND.height() - 50,
+                Texture.CONFIG_BOOK_SCROLL_BUTTON.width(),
+                Texture.CONFIG_BOOK_SCROLL_BUTTON.height() / 2,
                 roundedUpPageNeed,
                 1,
                 this::scrollConfigurableList,
@@ -428,7 +420,7 @@ public final class WynntilsBookSettingsScreen extends WynntilsScreen implements 
                             .map(overlay -> (Configurable) overlay));
 
             Configurable newSelected = configurablesList
-                    .filter(configurable -> configurable.getConfigJsonName().equals(selected.getConfigJsonName()))
+                    .filter(configurable -> configurable.getJsonName().equals(selected.getJsonName()))
                     .findFirst()
                     .orElse(null);
 
@@ -436,9 +428,9 @@ public final class WynntilsBookSettingsScreen extends WynntilsScreen implements 
         }
     }
 
-    public boolean configOptionContains(ConfigHolder configHolder) {
+    public boolean configOptionContains(Config<?> config) {
         return !searchWidget.getTextBoxInput().isEmpty()
-                && StringUtils.containsIgnoreCase(configHolder.getDisplayName(), searchWidget.getTextBoxInput());
+                && StringUtils.containsIgnoreCase(config.getDisplayName(), searchWidget.getTextBoxInput());
     }
 
     private boolean searchMatches(Translatable translatable) {
@@ -454,27 +446,26 @@ public final class WynntilsBookSettingsScreen extends WynntilsScreen implements 
             return;
         }
 
-        List<ConfigHolder> configsOptions = selected.getVisibleConfigOptions().stream()
-                .sorted(Comparator.comparing(
-                        configHolder -> !Objects.equals(configHolder.getFieldName(), "userEnabled")))
+        List<Config<?>> configsOptions = selected.getVisibleConfigOptions().stream()
+                .sorted(Comparator.comparing(config -> !Objects.equals(config.getFieldName(), "userEnabled")))
                 .toList();
 
         for (int i = 0; i < configsOptions.size(); i++) {
-            ConfigHolder config = configsOptions.get(i);
+            Config<?> config = configsOptions.get(i);
 
             int renderIndex = i % CONFIGS_PER_PAGE;
 
-            configs.add(new ConfigButton(
-                    Texture.SETTING_BACKGROUND.width() / 2 + 10, 21 + renderIndex * 46, 160, 45, this, config));
+            configs.add(new ConfigTile(
+                    Texture.CONFIG_BOOK_BACKGROUND.width() / 2 + 10, 21 + renderIndex * 46, 160, 45, this, config));
         }
 
         int roundedUpPageNeed = configs.size() / CONFIGS_PER_PAGE + (configs.size() % CONFIGS_PER_PAGE == 0 ? 0 : 1);
         configListScrollButton = new ScrollButton(
-                Texture.SETTING_BACKGROUND.width() - 23,
+                Texture.CONFIG_BOOK_BACKGROUND.width() - 23,
                 17,
-                Texture.SETTING_BACKGROUND.height() - 25,
-                Texture.SETTING_SCROLL_BUTTON.width(),
-                Texture.SETTING_SCROLL_BUTTON.height() / 2,
+                Texture.CONFIG_BOOK_BACKGROUND.height() - 25,
+                Texture.CONFIG_BOOK_SCROLL_BUTTON.width(),
+                Texture.CONFIG_BOOK_SCROLL_BUTTON.height() / 2,
                 configs.size() <= CONFIGS_PER_PAGE ? 0 : (roundedUpPageNeed - 1) * CONFIGS_PER_PAGE,
                 CONFIGS_PER_PAGE,
                 this::scrollConfigList,
@@ -482,11 +473,11 @@ public final class WynntilsBookSettingsScreen extends WynntilsScreen implements 
     }
 
     private float getTranslationY() {
-        return (this.height - Texture.SETTING_BACKGROUND.height()) / 2f;
+        return (this.height - Texture.CONFIG_BOOK_BACKGROUND.height()) / 2f;
     }
 
     private float getTranslationX() {
-        return (this.width - Texture.SETTING_BACKGROUND.width()) / 2f;
+        return (this.width - Texture.CONFIG_BOOK_BACKGROUND.width()) / 2f;
     }
 
     public Configurable getSelected() {

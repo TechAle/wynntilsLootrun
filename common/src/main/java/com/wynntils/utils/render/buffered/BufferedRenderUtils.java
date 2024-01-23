@@ -1,6 +1,6 @@
 /*
  * Copyright © Wynntils 2023.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.utils.render.buffered;
 
@@ -15,7 +15,7 @@ import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
 
 public final class BufferedRenderUtils {
-    public static void drawLine(
+    private static void drawLine(
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             CustomColor color,
@@ -207,7 +207,7 @@ public final class BufferedRenderUtils {
                 texture.height());
     }
 
-    public static void drawTexturedRect(
+    private static void drawTexturedRect(
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             ResourceLocation tex,
@@ -563,7 +563,7 @@ public final class BufferedRenderUtils {
      * @param x2 top-right x(on screen)
      * @param y2 top-right y(on screen)
      */
-    public static void createMask(
+    private static void createMask(
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             Texture texture,

@@ -1,6 +1,6 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.mc.event;
 
@@ -42,7 +42,8 @@ public abstract class RenderEvent extends Event {
         GUI, // This is called before and after Gui#render
         CROSSHAIR,
         HEALTH_BAR,
-        FOOD_BAR
+        FOOD_BAR,
+        PLAYER_TAB_LIST
     }
 
     @Cancelable

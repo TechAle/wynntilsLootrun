@@ -1,28 +1,27 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.mc.event;
 
+import com.wynntils.core.text.StyledText;
 import net.minecraft.server.ServerScoreboard;
-import net.minecraftforge.eventbus.api.Cancelable;
 import net.minecraftforge.eventbus.api.Event;
 
-@Cancelable
 public class ScoreboardSetScoreEvent extends Event {
-    private final String owner;
+    private final StyledText owner;
     private final String objectiveName;
     private final int score;
     private final ServerScoreboard.Method method;
 
-    public ScoreboardSetScoreEvent(String owner, String objectiveName, int score, ServerScoreboard.Method method) {
+    public ScoreboardSetScoreEvent(StyledText owner, String objectiveName, int score, ServerScoreboard.Method method) {
         this.owner = owner;
         this.objectiveName = objectiveName;
         this.score = score;
         this.method = method;
     }
 
-    public String getOwner() {
+    public StyledText getOwner() {
         return owner;
     }
 

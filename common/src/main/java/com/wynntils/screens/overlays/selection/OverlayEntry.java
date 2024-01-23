@@ -1,13 +1,15 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.screens.overlays.selection;
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.wynntils.core.components.Managers;
-import com.wynntils.core.features.overlays.Overlay;
+import com.wynntils.core.consumers.overlays.Overlay;
+import com.wynntils.core.persisted.config.Config;
+import com.wynntils.core.text.StyledText;
 import com.wynntils.screens.overlays.placement.OverlayManagementScreen;
 import com.wynntils.utils.colors.CommonColors;
 import com.wynntils.utils.colors.CustomColor;
@@ -68,12 +70,11 @@ public class OverlayEntry extends ContainerObjectSelectionList.Entry<OverlayEntr
 
         poseStack.translate(0, 0, 1);
         String translatedName = this.overlay.getTranslatedName();
-        float renderHeightForOverlayName =
-                FontRenderer.getInstance().calculateRenderHeight(List.of(translatedName), width);
+        float renderHeightForOverlayName = FontRenderer.getInstance().calculateRenderHeight(translatedName, width);
         FontRenderer.getInstance()
                 .renderText(
                         poseStack,
-                        translatedName,
+                        StyledText.fromString(translatedName),
                         3,
                         (OverlayList.getItemHeight() - renderHeightForOverlayName / 2f) / 2f - PADDING / 2f,
                         width - PADDING,
@@ -112,11 +113,10 @@ public class OverlayEntry extends ContainerObjectSelectionList.Entry<OverlayEntr
 
         // right click
         if (button == 1) {
-            Managers.Config.getConfigHolders()
-                    .filter(configHolder -> configHolder.getParent() == overlay
-                            && configHolder.getFieldName().equals("userEnabled"))
+            Managers.Config.getConfigsForOwner(overlay)
+                    .filter(config -> config.getFieldName().equals("userEnabled"))
                     .findFirst()
-                    .ifPresent(configHolder -> configHolder.setValue(!Managers.Overlay.isEnabled(overlay)));
+                    .ifPresent(config -> ((Config<Boolean>) config).setValue(!Managers.Overlay.isEnabled(overlay)));
             Managers.Config.saveConfig();
             return true;
         }

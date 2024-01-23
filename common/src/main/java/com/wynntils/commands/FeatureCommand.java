@@ -1,6 +1,6 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.commands;
 
@@ -8,10 +8,10 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import com.wynntils.core.commands.Command;
 import com.wynntils.core.components.Managers;
-import com.wynntils.core.config.Category;
-import com.wynntils.core.features.Feature;
+import com.wynntils.core.consumers.commands.Command;
+import com.wynntils.core.consumers.features.Feature;
+import com.wynntils.core.persisted.config.Category;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.ChatFormatting;
@@ -32,14 +32,9 @@ public class FeatureCommand extends Command {
     }
 
     @Override
-    public String getDescription() {
-        return "List and manage Wynntils features";
-    }
-
-    @Override
-    public LiteralArgumentBuilder<CommandSourceStack> getCommandBuilder() {
-        return Commands.literal(getCommandName())
-                .then(Commands.literal("list").executes(this::listFeatures))
+    public LiteralArgumentBuilder<CommandSourceStack> getCommandBuilder(
+            LiteralArgumentBuilder<CommandSourceStack> base) {
+        return base.then(Commands.literal("list").executes(this::listFeatures))
                 .then(Commands.literal("enable")
                         .then(Commands.argument("feature", StringArgumentType.word())
                                 .suggests(FEATURE_SUGGESTION_PROVIDER)

@@ -1,11 +1,11 @@
 /*
  * Copyright © Wynntils 2023.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.functions.generic;
 
-import com.wynntils.core.functions.GenericFunction;
-import com.wynntils.core.functions.arguments.FunctionArguments;
+import com.wynntils.core.consumers.functions.GenericFunction;
+import com.wynntils.core.consumers.functions.arguments.FunctionArguments;
 import java.util.List;
 
 public final class MathFunctions {
@@ -40,7 +40,7 @@ public final class MathFunctions {
         }
 
         @Override
-        public List<String> getAliases() {
+        protected List<String> getAliases() {
             return List.of("sub");
         }
     }
@@ -61,7 +61,7 @@ public final class MathFunctions {
         }
 
         @Override
-        public List<String> getAliases() {
+        protected List<String> getAliases() {
             return List.of("mul");
         }
     }
@@ -69,19 +69,19 @@ public final class MathFunctions {
     public static class DivideFunction extends GenericFunction<Double> {
         @Override
         public Double getValue(FunctionArguments arguments) {
-            return arguments.getArgument("divident").getDoubleValue()
+            return arguments.getArgument("dividend").getDoubleValue()
                     / arguments.getArgument("divisor").getDoubleValue();
         }
 
         @Override
         public FunctionArguments.RequiredArgumentBuilder getRequiredArgumentsBuilder() {
             return new FunctionArguments.RequiredArgumentBuilder(List.of(
-                    new FunctionArguments.Argument<>("divident", Number.class, null),
+                    new FunctionArguments.Argument<>("dividend", Number.class, null),
                     new FunctionArguments.Argument<>("divisor", Number.class, null)));
         }
 
         @Override
-        public List<String> getAliases() {
+        protected List<String> getAliases() {
             return List.of("div");
         }
     }
@@ -89,19 +89,19 @@ public final class MathFunctions {
     public static class ModuloFunction extends GenericFunction<Double> {
         @Override
         public Double getValue(FunctionArguments arguments) {
-            return arguments.getArgument("divident").getDoubleValue()
+            return arguments.getArgument("dividend").getDoubleValue()
                     % arguments.getArgument("divisor").getDoubleValue();
         }
 
         @Override
         public FunctionArguments.RequiredArgumentBuilder getRequiredArgumentsBuilder() {
             return new FunctionArguments.RequiredArgumentBuilder(List.of(
-                    new FunctionArguments.Argument<>("divident", Number.class, null),
+                    new FunctionArguments.Argument<>("dividend", Number.class, null),
                     new FunctionArguments.Argument<>("divisor", Number.class, null)));
         }
 
         @Override
-        public List<String> getAliases() {
+        protected List<String> getAliases() {
             return List.of("mod");
         }
     }
@@ -122,7 +122,7 @@ public final class MathFunctions {
         }
 
         @Override
-        public List<String> getAliases() {
+        protected List<String> getAliases() {
             return List.of("pow");
         }
     }
@@ -140,7 +140,7 @@ public final class MathFunctions {
         }
 
         @Override
-        public List<String> getAliases() {
+        protected List<String> getAliases() {
             return List.of("sqrt");
         }
     }
@@ -206,7 +206,7 @@ public final class MathFunctions {
         }
 
         @Override
-        public List<String> getAliases() {
+        protected List<String> getAliases() {
             return List.of("int");
         }
     }
@@ -227,7 +227,7 @@ public final class MathFunctions {
         }
 
         @Override
-        public List<String> getAliases() {
+        protected List<String> getAliases() {
             return List.of("rand");
         }
     }

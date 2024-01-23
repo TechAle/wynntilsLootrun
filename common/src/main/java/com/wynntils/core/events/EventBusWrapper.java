@@ -1,6 +1,6 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.core.events;
 
@@ -32,6 +32,10 @@ public final class EventBusWrapper extends EventBus {
         String threadName = Thread.currentThread().getName();
         if (threadAnnotation == null) {
             // Events without annotation are only allowed on Render thread
+            if (!threadName.equals("Render thread")) {
+                WynntilsMod.warn(
+                        "Handling non-annotated event " + eventClass.getSimpleName() + " on thread " + threadName);
+            }
         } else {
             // Make sure annotation matches the actual thread
             boolean threadOk =
@@ -41,7 +45,10 @@ public final class EventBusWrapper extends EventBus {
                         case WORKER -> threadName.toLowerCase(Locale.ROOT).contains("pool");
                         case ANY -> true;
                     };
-
+            if (!threadOk) {
+                WynntilsMod.warn("Handling event " + eventClass.getSimpleName() + " annotated as "
+                        + threadAnnotation.value() + " on thread " + threadName);
+            }
         }
 
         return super.post(event);

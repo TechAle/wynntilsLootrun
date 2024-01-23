@@ -1,26 +1,27 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.screens.overlays.placement;
 
+import com.google.common.collect.Lists;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.wynntils.core.components.Managers;
-import com.wynntils.core.config.ConfigHolder;
-import com.wynntils.core.features.overlays.Corner;
-import com.wynntils.core.features.overlays.Edge;
-import com.wynntils.core.features.overlays.Overlay;
-import com.wynntils.core.features.overlays.OverlayPosition;
-import com.wynntils.core.features.overlays.OverlaySize;
-import com.wynntils.core.features.overlays.SectionCoordinates;
-import com.wynntils.screens.base.WynntilsScreen;
+import com.wynntils.core.consumers.overlays.Corner;
+import com.wynntils.core.consumers.overlays.Edge;
+import com.wynntils.core.consumers.overlays.Overlay;
+import com.wynntils.core.consumers.overlays.OverlayPosition;
+import com.wynntils.core.consumers.overlays.OverlaySize;
+import com.wynntils.core.consumers.overlays.SectionCoordinates;
+import com.wynntils.core.consumers.screens.WynntilsScreen;
+import com.wynntils.core.persisted.config.Config;
+import com.wynntils.core.text.StyledText;
 import com.wynntils.screens.overlays.selection.OverlaySelectionScreen;
 import com.wynntils.utils.MathUtils;
 import com.wynntils.utils.colors.CommonColors;
 import com.wynntils.utils.colors.CustomColor;
 import com.wynntils.utils.mc.KeyboardUtils;
 import com.wynntils.utils.mc.McUtils;
-import com.wynntils.utils.mc.TooltipUtils;
 import com.wynntils.utils.render.FontRenderer;
 import com.wynntils.utils.render.RenderUtils;
 import com.wynntils.utils.render.TextRenderSetting;
@@ -40,7 +41,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec2;
@@ -64,7 +64,7 @@ public final class OverlayManagementScreen extends WynntilsScreen {
             Component.literal("Resize the overlay by dragging the edges or corners."),
             Component.literal("Move it by dragging the center of the overlay."),
             Component.literal("By holding shift, you can disable alignment lines."),
-            Component.literal("Use your arrows to change vertical"),
+            Component.literal("Use shift-arrows to change vertical"),
             Component.literal("and horizontal alignment."),
             Component.literal("The overlay name will render respecting"),
             Component.literal("the current overlay alignments."),
@@ -95,6 +95,8 @@ public final class OverlayManagementScreen extends WynntilsScreen {
 
     private boolean userInteracted = false;
     private int animationLengthRemaining;
+    private double snapOffsetX;
+    private double snapOffsetY;
 
     private OverlayManagementScreen(Overlay overlay) {
         super(Component.translatable("screens.wynntils.overlayManagement.name"));
@@ -205,7 +207,7 @@ public final class OverlayManagementScreen extends WynntilsScreen {
                 FontRenderer.getInstance()
                         .renderAlignedTextInBox(
                                 poseStack,
-                                overlay.getTranslatedName(),
+                                StyledText.fromString(overlay.getTranslatedName()),
                                 renderX,
                                 renderX + overlay.getWidth(),
                                 renderY,
@@ -218,32 +220,14 @@ public final class OverlayManagementScreen extends WynntilsScreen {
             }
 
             if (isMouseHoveringOverlay(selectedOverlay, mouseX, mouseY) && selectionMode == SelectionMode.NONE) {
-                List<ClientTooltipComponent> clientTooltipComponents =
-                        TooltipUtils.componentToClientTooltipComponent(HELP_TOOLTIP_LINES);
-                int tooltipWidth = TooltipUtils.getToolTipWidth(
-                        clientTooltipComponents, FontRenderer.getInstance().getFont());
-                int tooltipHeight = TooltipUtils.getToolTipHeight(clientTooltipComponents);
-
-                float renderX = mouseX > McUtils.window().getGuiScaledWidth() / 2f ? mouseX - tooltipWidth : mouseX;
-                float renderY = mouseY > McUtils.window().getGuiScaledHeight() / 2f ? mouseY - tooltipHeight : mouseY;
-
-                RenderUtils.drawTooltipAt(
-                        poseStack,
-                        renderX,
-                        renderY,
-                        100,
-                        HELP_TOOLTIP_LINES,
-                        FontRenderer.getInstance().getFont(),
-                        false);
+                McUtils.mc()
+                        .screen
+                        .setTooltipForNextRenderPass(
+                                Lists.transform(HELP_TOOLTIP_LINES, Component::getVisualOrderText));
             }
         }
 
         super.doRender(poseStack, mouseX, mouseY, partialTick); // This renders widgets
-        // This renders button tooltips
-        if (this.deferredTooltipRendering != null) {
-            this.renderTooltip(poseStack, this.deferredTooltipRendering, mouseX, mouseY);
-            this.deferredTooltipRendering = null;
-        }
     }
 
     private CustomColor getOverlayColor(Overlay overlay) {
@@ -253,9 +237,9 @@ public final class OverlayManagementScreen extends WynntilsScreen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean doMouseClicked(double mouseX, double mouseY, int button) {
         // Let the buttons of the Screen have priority
-        if (super.mouseClicked(mouseX, mouseY, button)) return true;
+        if (super.doMouseClicked(mouseX, mouseY, button)) return true;
         if (testMode) return false;
 
         userInteracted = true;
@@ -287,14 +271,14 @@ public final class OverlayManagementScreen extends WynntilsScreen {
         Overlay selected = selectedOverlay;
 
         if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE && KeyboardUtils.isShiftDown()) {
-            selectedOverlay.getConfigOptionFromString("position").ifPresent(ConfigHolder::reset);
-            selectedOverlay.getConfigOptionFromString("size").ifPresent(ConfigHolder::reset);
+            selectedOverlay.getConfigOptionFromString("position").ifPresent(Config::reset);
+            selectedOverlay.getConfigOptionFromString("size").ifPresent(Config::reset);
             selectedOverlay
                     .getConfigOptionFromString("horizontalAlignmentOverride")
-                    .ifPresent(ConfigHolder::reset);
+                    .ifPresent(Config::reset);
             selectedOverlay
                     .getConfigOptionFromString("verticalAlignmentOverride")
-                    .ifPresent(ConfigHolder::reset);
+                    .ifPresent(Config::reset);
 
             return true;
         }
@@ -415,7 +399,8 @@ public final class OverlayManagementScreen extends WynntilsScreen {
                 int finalIndex = index;
                 selectedOverlay
                         .getConfigOptionFromString("verticalAlignmentOverride")
-                        .ifPresent(configHolder -> configHolder.setValue(values[finalIndex]));
+                        .ifPresent(config -> ((Config<VerticalAlignment>) config).setValue(values[finalIndex]));
+
             } else if (keyCode == GLFW.GLFW_KEY_RIGHT || keyCode == GLFW.GLFW_KEY_LEFT) {
                 int index = selectedOverlay.getRenderHorizontalAlignment().ordinal();
 
@@ -431,7 +416,7 @@ public final class OverlayManagementScreen extends WynntilsScreen {
                 int finalIndex = index;
                 selectedOverlay
                         .getConfigOptionFromString("horizontalAlignmentOverride")
-                        .ifPresent(configHolder -> configHolder.setValue(values[finalIndex]));
+                        .ifPresent(config -> ((Config<HorizontalAlignment>) config).setValue(values[finalIndex]));
             }
         } else {
             // Arrow keys change overlay position
@@ -446,9 +431,8 @@ public final class OverlayManagementScreen extends WynntilsScreen {
             final int finalOffsetX = offsetX;
             final int finalOffsetY = offsetY;
 
-            selectedOverlay
-                    .getConfigOptionFromString("position")
-                    .ifPresent(configHolder -> configHolder.setValue(OverlayPosition.getBestPositionFor(
+            selectedOverlay.getConfigOptionFromString("position").ifPresent(config -> ((Config<OverlayPosition>) config)
+                    .setValue(OverlayPosition.getBestPositionFor(
                             selectedOverlay,
                             selectedOverlay.getRenderX(),
                             selectedOverlay.getRenderY(),
@@ -611,6 +595,11 @@ public final class OverlayManagementScreen extends WynntilsScreen {
             return new Pair<>(dragX, dragY);
         }
 
+        dragX += snapOffsetX;
+        dragY += snapOffsetY;
+        double originalDragX = dragX;
+        double originalDragY = dragY;
+
         List<Edge> edgesToSnapTo =
                 switch (this.selectionMode) {
                     case NONE -> List.of();
@@ -675,6 +664,8 @@ public final class OverlayManagementScreen extends WynntilsScreen {
             alignmentLinesToRender.remove(edge);
         }
 
+        snapOffsetX = originalDragX - dragX;
+        snapOffsetY = originalDragY - dragY;
         return new Pair<>(dragX, dragY);
     }
 

@@ -1,15 +1,16 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.core.notifications;
 
+import com.wynntils.core.text.StyledText;
 import com.wynntils.utils.render.TextRenderSetting;
 import com.wynntils.utils.render.TextRenderTask;
 import java.util.Objects;
 
 public class MessageContainer {
-    private String message;
+    private StyledText message;
     private TextRenderTask renderTask;
     private int messageCount;
 
@@ -23,7 +24,7 @@ public class MessageContainer {
         this.messageCount = 1;
     }
 
-    public String getMessage() {
+    public StyledText getMessage() {
         return message;
     }
 
@@ -42,7 +43,7 @@ public class MessageContainer {
     }
 
     // Do NOT call this to edit the container. Use Managers.Notification methods instead.
-    void editMessage(String newMessage) {
+    void editMessage(StyledText newMessage) {
         this.message = newMessage;
 
         updateRenderTask();
@@ -52,8 +53,8 @@ public class MessageContainer {
         if (this.messageCount == 1) {
             this.renderTask = new TextRenderTask(this.message, TextRenderSetting.DEFAULT);
         } else {
-            String messageMultiplier = " §7[x" + this.messageCount + "]";
-            this.renderTask = new TextRenderTask(this.message + messageMultiplier, this.renderTask.getSetting());
+            StyledText messageMultiplier = StyledText.fromString(" §7[x" + this.messageCount + "]");
+            this.renderTask = new TextRenderTask(this.message.append(messageMultiplier), this.renderTask.getSetting());
         }
     }
 

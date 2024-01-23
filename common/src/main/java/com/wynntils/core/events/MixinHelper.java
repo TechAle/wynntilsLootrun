@@ -1,20 +1,22 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.core.events;
 
 import com.wynntils.core.WynntilsMod;
 import com.wynntils.core.components.Managers;
+import com.wynntils.utils.mc.McUtils;
 import net.minecraftforge.eventbus.api.Event;
 
 public final class MixinHelper {
     public static boolean onWynncraft() {
-        return Managers.Connection.onServer();
+        return true;
     }
 
     public static void post(Event event) {
-        //if (!onWynncraft()) return;
+        if (!onWynncraft()) return;
+        if (McUtils.player() == null) return;
 
         WynntilsMod.postEvent(event);
     }

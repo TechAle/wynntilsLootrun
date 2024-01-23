@@ -1,6 +1,6 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.mc.mixin;
 
@@ -31,33 +31,54 @@ public abstract class GuiMixin {
     private Minecraft minecraft;
 
     @Inject(
-            method = "renderSlot(IIFLnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/ItemStack;I)V",
+            method =
+                    "renderSlot(Lcom/mojang/blaze3d/vertex/PoseStack;IIFLnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/ItemStack;I)V",
             at = @At("HEAD"))
     private void renderSlotPre(
-            int x, int y, float ticks, Player player, ItemStack itemStack, int i, CallbackInfo info) {
-        PoseStack poseStack = new PoseStack();
+            PoseStack poseStack,
+            int x,
+            int y,
+            float ticks,
+            Player player,
+            ItemStack itemStack,
+            int i,
+            CallbackInfo info) {
         MixinHelper.post(new HotbarSlotRenderEvent.Pre(poseStack, itemStack, x, y));
     }
 
     @Inject(
-            method = "renderSlot(IIFLnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/ItemStack;I)V",
+            method =
+                    "renderSlot(Lcom/mojang/blaze3d/vertex/PoseStack;IIFLnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/ItemStack;I)V",
             at =
                     @At(
                             value = "INVOKE",
                             target =
-                                    "Lnet/minecraft/client/renderer/entity/ItemRenderer;renderGuiItemDecorations(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V"))
+                                    "Lnet/minecraft/client/renderer/entity/ItemRenderer;renderGuiItemDecorations(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V"))
     private void renderSlotCountPre(
-            int x, int y, float ticks, Player player, ItemStack itemStack, int i, CallbackInfo info) {
-        PoseStack poseStack = new PoseStack();
+            PoseStack poseStack,
+            int x,
+            int y,
+            float ticks,
+            Player player,
+            ItemStack itemStack,
+            int i,
+            CallbackInfo info) {
         MixinHelper.post(new HotbarSlotRenderEvent.CountPre(poseStack, itemStack, x, y));
     }
 
     @Inject(
-            method = "renderSlot(IIFLnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/ItemStack;I)V",
+            method =
+                    "renderSlot(Lcom/mojang/blaze3d/vertex/PoseStack;IIFLnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/ItemStack;I)V",
             at = @At("RETURN"))
     private void renderSlotPost(
-            int x, int y, float ticks, Player player, ItemStack itemStack, int i, CallbackInfo info) {
-        PoseStack poseStack = new PoseStack();
+            PoseStack poseStack,
+            int x,
+            int y,
+            float ticks,
+            Player player,
+            ItemStack itemStack,
+            int i,
+            CallbackInfo info) {
         MixinHelper.post(new HotbarSlotRenderEvent.Post(poseStack, itemStack, x, y));
     }
 

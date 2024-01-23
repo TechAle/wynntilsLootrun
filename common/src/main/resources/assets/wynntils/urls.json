@@ -1,6 +1,6 @@
 [
   {
-    "version": 7
+    "version": 9
   },
   {
     "id": "apiAthenaAuthPublicKey",
@@ -25,8 +25,11 @@
     "url": "https://athena.wynntils.com/crash/report"
   },
   {
+    "arguments": [
+      "stream"
+    ],
     "id": "apiAthenaUpdateCheck",
-    "url": "https://athena.wynntils.com/version/latest/ce"
+    "url": "https://athena.wynntils.com/version/latest/%{stream}"
   },
   {
     "arguments": [
@@ -81,13 +84,26 @@
     "url": "https://athena.wynntils.com/cache/get/serverList"
   },
   {
-    "id": "dataAthenaTerritoryList",
-    "url": "https://athena.wynntils.com/cache/get/territoryList"
+    "id": "dataAthenaGuildList",
+    "url": "https://athena.wynntils.com/cache/get/guildList"
+  },
+  {
+    "id": "dataAthenaLeaderboard",
+    "url": "https://athena.wynntils.com/cache/get/leaderboard"
+  },
+  {
+    "id": "dataWynncraftTerritoryList",
+    "url": "https://api.wynncraft.com/public_api.php?action=territoryList"
   },
   {
     "id": "dataStaticCombatLocations",
     "md5": "f8d2b16d8cd33181b6a3857fa5e390a9",
     "url": "https://raw.githubusercontent.com/Wynntils/WynntilsWebsite-API/master/combatlocations.json"
+  },
+  {
+    "id": "dataStaticCaveInfo",
+    "md5": "ac509a4e620ac65718a6b0816e848db5",
+    "url": "https://raw.githubusercontent.com/Wynntils/Reference/main/content/cave.json"
   },
   {
     "id": "dataStaticDiscoveries",
@@ -96,7 +112,7 @@
   },
   {
     "id": "dataStaticGear",
-    "md5": "08ad22a9fcda25e82673d1b9ec8cda6b",
+    "md5": "68c6605c2b6f9d41217b8ef4776d0a3a",
     "url": "https://raw.githubusercontent.com/Wynntils/WynntilsWebsite-API/master/gear.json"
   },
   {
@@ -106,7 +122,7 @@
   },
   {
     "id": "dataStaticIngredients",
-    "md5": "a7aa8bcf7b682f31d343eb47fc4ec821",
+    "md5": "e80aa5df4b6ed36f86d68d970df5f1fd",
     "url": "https://raw.githubusercontent.com/Wynntils/WynntilsWebsite-API/master/ingredients.json"
   },
   {
@@ -121,12 +137,12 @@
   },
   {
     "id": "dataStaticMajorIds",
-    "md5": "eb8ef7fff4b931a28ffaf7d8fac5a9fb",
+    "md5": "38bb5299f66016271f5bf3a1f49ec0ae",
     "url": "https://raw.githubusercontent.com/Wynntils/WynntilsWebsite-API/master/major_ids.json"
   },
   {
     "id": "dataStaticMaps",
-    "md5": "ce8fa555b856dce76b285a606c422aad",
+    "md5": "5a89584163267d54a3dfc0b357d26ad5",
     "url": "https://raw.githubusercontent.com/Wynntils/WynntilsWebsite-API/master/maps/maps.json"
   },
   {
@@ -140,6 +156,11 @@
     "url": "https://raw.githubusercontent.com/Wynntils/Reference/main/locations/places.json"
   },
   {
+    "id": "dataStaticSeaskipperDestinations",
+    "md5": "9316de06eb80ef9a26f8b604e9ac13bd",
+    "url": "https://raw.githubusercontent.com/Wynntils/WynntilsWebsite-API/master/seaskipper_destinations.json"
+  },
+  {
     "id": "dataStaticServices",
     "md5": "20c6bad6dddac9fdf32b582764e266ef",
     "url": "https://raw.githubusercontent.com/Wynntils/Reference/main/locations/services.json"
@@ -148,6 +169,11 @@
     "id": "dataStaticSplashes",
     "md5": "53341c283d2cc3c0e721844064a24603",
     "url": "https://raw.githubusercontent.com/Wynntils/WynntilsWebsite-API/master/splashes.json"
+  },
+  {
+    "id": "dataStaticLootrunTasksNamed",
+    "md5": "c4deebe4fe76847742b61453b43dbb77",
+    "url": "https://raw.githubusercontent.com/Wynntils/WynntilsWebsite-API/master/lootrun_tasks_named.json"
   },
   {
     "id": "dataStaticUrls",
@@ -173,7 +199,7 @@
       "itemname"
     ],
     "id": "linkWynndataItemLookup",
-    "url": "https://www.wynndata.tk/i/%{itemname}"
+    "url": "https://data.wynntils.com/i/%{itemname}"
   },
   {
     "id": "linkWynntilsDiscordInvite",
@@ -193,5 +219,9 @@
   {
     "id": "linkWynntilsStatus",
     "url": "https://status.wynntils.com/"
+  },
+  {
+    "id": "dataStaticAbilities",
+    "url": "https://raw.githubusercontent.com/Wynntils/WynntilsWebsite-API/master/abilities.json"
   }
 ]

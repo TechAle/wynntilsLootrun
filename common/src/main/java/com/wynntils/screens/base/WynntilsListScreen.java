@@ -1,10 +1,13 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.screens.base;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.wynntils.core.text.StyledText;
+import com.wynntils.screens.activities.widgets.QuestBookSearchWidget;
+import com.wynntils.screens.base.widgets.SearchWidget;
 import com.wynntils.screens.base.widgets.TextInputBoxWidget;
 import com.wynntils.screens.base.widgets.WynntilsButton;
 import com.wynntils.utils.MathUtils;
@@ -31,15 +34,27 @@ public abstract class WynntilsListScreen<E, B extends WynntilsButton> extends Wy
     protected List<E> elements = new ArrayList<>();
 
     private final List<B> elementButtons = new ArrayList<>();
+    protected SearchWidget searchWidget;
     protected Renderable hovered = null;
 
     @Override
     protected void doInit() {
+        reloadElements(searchWidget.getTextBoxInput());
+
+        this.addRenderableWidget(searchWidget);
     }
 
     protected WynntilsListScreen(Component component) {
         super(component);
 
+        // Do not lose search info on re-init
+        this.searchWidget = new QuestBookSearchWidget(
+                (int) (Texture.CONTENT_BOOK_BACKGROUND.width() / 2f + 15),
+                0,
+                Texture.CONTENT_BOOK_SEARCH.width(),
+                Texture.CONTENT_BOOK_SEARCH.height(),
+                s -> reloadElements(),
+                this);
     }
 
     protected void renderWidgets(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
@@ -63,10 +78,10 @@ public abstract class WynntilsListScreen<E, B extends WynntilsButton> extends Wy
         FontRenderer.getInstance()
                 .renderAlignedTextInBox(
                         poseStack,
-                        (currentPage) + " / " + (maxPage),
-                        Texture.QUEST_BOOK_BACKGROUND.width() / 2f,
-                        Texture.QUEST_BOOK_BACKGROUND.width(),
-                        Texture.QUEST_BOOK_BACKGROUND.height() - 25,
+                        StyledText.fromString((currentPage) + " / " + (maxPage)),
+                        Texture.CONTENT_BOOK_BACKGROUND.width() / 2f,
+                        Texture.CONTENT_BOOK_BACKGROUND.width(),
+                        Texture.CONTENT_BOOK_BACKGROUND.height() - 25,
                         0,
                         CommonColors.BLACK,
                         HorizontalAlignment.CENTER,
@@ -77,20 +92,32 @@ public abstract class WynntilsListScreen<E, B extends WynntilsButton> extends Wy
         FontRenderer.getInstance()
                 .renderAlignedTextInBox(
                         poseStack,
-                        key,
-                        Texture.QUEST_BOOK_BACKGROUND.width() / 2f + 15f,
-                        Texture.QUEST_BOOK_BACKGROUND.width() - 15f,
+                        StyledText.fromString(key),
+                        Texture.CONTENT_BOOK_BACKGROUND.width() / 2f + 15f,
+                        Texture.CONTENT_BOOK_BACKGROUND.width() - 15f,
                         0,
-                        Texture.QUEST_BOOK_BACKGROUND.height(),
-                        Texture.QUEST_BOOK_BACKGROUND.width() / 2f - 30f,
+                        Texture.CONTENT_BOOK_BACKGROUND.height(),
+                        Texture.CONTENT_BOOK_BACKGROUND.width() / 2f - 30f,
                         CommonColors.BLACK,
                         HorizontalAlignment.CENTER,
                         VerticalAlignment.MIDDLE,
                         TextShadow.NONE);
     }
 
+    protected void renderTooltip(PoseStack poseStack, int mouseX, int mouseY) {
+        List<Component> tooltipLines = List.of();
+
+        if (this.hovered instanceof TooltipProvider tooltipWidget) {
+            tooltipLines = tooltipWidget.getTooltipLines();
+        }
+
+        if (tooltipLines.isEmpty()) return;
+
+        this.renderComponentTooltip(poseStack, tooltipLines, mouseX, mouseY);
+    }
+
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean doMouseClicked(double mouseX, double mouseY, int button) {
         final float translationX = getTranslationX();
         final float translationY = getTranslationY();
 
@@ -129,13 +156,23 @@ public abstract class WynntilsListScreen<E, B extends WynntilsButton> extends Wy
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE && this.shouldCloseOnEsc()) {
+            McUtils.mc().setScreen(null);
+            return true;
+        }
 
+        if (searchWidget != null) {
+            return searchWidget.keyPressed(keyCode, scanCode, modifiers);
+        }
 
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
     public boolean charTyped(char codePoint, int modifiers) {
+        if (searchWidget != null) {
+            return searchWidget.charTyped(codePoint, modifiers);
+        }
 
         return super.charTyped(codePoint, modifiers);
     }
@@ -169,6 +206,11 @@ public abstract class WynntilsListScreen<E, B extends WynntilsButton> extends Wy
         return currentPage;
     }
 
+    @Override
+    public void setCurrentPage(int currentPage) {
+        this.currentPage = MathUtils.clamp(currentPage, 0, maxPage);
+        reloadElements(searchWidget.getTextBoxInput());
+    }
 
     @Override
     public int getMaxPage() {
@@ -201,6 +243,15 @@ public abstract class WynntilsListScreen<E, B extends WynntilsButton> extends Wy
 
     protected abstract void reloadElementsList(String searchTerm);
 
+    public void reloadElements() {
+        reloadElements(searchWidget.getTextBoxInput());
+        setCurrentPage(0);
+    }
+
+    @Override
+    public TextInputBoxWidget getFocusedTextInput() {
+        return this.searchWidget;
+    }
 
     // Dummy impl
     @Override
@@ -208,5 +259,11 @@ public abstract class WynntilsListScreen<E, B extends WynntilsButton> extends Wy
 
     protected int getElementsPerPage() {
         return 13;
+    }
+
+    @Override
+    public void added() {
+        searchWidget.opened();
+        super.added();
     }
 }

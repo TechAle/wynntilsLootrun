@@ -1,6 +1,6 @@
 /*
- * Copyright © Wynntils 2022.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2022-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.mc.event;
 
@@ -12,12 +12,18 @@ import net.minecraftforge.eventbus.api.Event;
  */
 public class ScreenInitEvent extends Event {
     private final Screen screen;
+    private final boolean firstInit;
 
-    public ScreenInitEvent(Screen screen) {
+    public ScreenInitEvent(Screen screen, boolean firstInit) {
         this.screen = screen;
+        this.firstInit = firstInit;
     }
 
     public Screen getScreen() {
         return screen;
+    }
+
+    public boolean isFirstInit() {
+        return firstInit;
     }
 }

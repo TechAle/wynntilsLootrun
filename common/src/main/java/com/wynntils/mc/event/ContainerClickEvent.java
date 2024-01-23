@@ -1,6 +1,6 @@
 /*
- * Copyright © Wynntils 2021.
- * This file is released under AGPLv3. See LICENSE for full license details.
+ * Copyright © Wynntils 2021-2023.
+ * This file is released under LGPLv3. See LICENSE for full license details.
  */
 package com.wynntils.mc.event;
 
@@ -16,13 +16,13 @@ public class ContainerClickEvent extends Event {
     private final AbstractContainerMenu containerMenu;
     private final int slotNum;
     private final ClickType clickType;
-    private final int buttonNum;
+    private final int mouseButton;
 
-    public ContainerClickEvent(AbstractContainerMenu containerMenu, int slotNum, ClickType clickType, int buttonNum) {
+    public ContainerClickEvent(AbstractContainerMenu containerMenu, int slotNum, ClickType clickType, int mouseButton) {
         this.containerMenu = containerMenu;
         this.slotNum = slotNum;
         this.clickType = clickType;
-        this.buttonNum = buttonNum;
+        this.mouseButton = mouseButton;
     }
 
     public AbstractContainerMenu getContainerMenu() {
@@ -37,8 +37,8 @@ public class ContainerClickEvent extends Event {
         return clickType;
     }
 
-    public int getButtonNum() {
-        return buttonNum;
+    public int getMouseButton() {
+        return mouseButton;
     }
 
     public ItemStack getItemStack() {
