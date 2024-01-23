@@ -20,13 +20,12 @@ import com.wynntils.functions.WorldFunctions;
 import com.wynntils.functions.generic.*;
 import com.wynntils.models.emeralds.type.EmeraldUnits;
 import com.wynntils.utils.type.ErrorOr;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.*;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 
 /** Manage all built-in {@link Function}s */
 public final class FunctionManager extends Manager {
@@ -386,13 +385,8 @@ public final class FunctionManager extends Manager {
         registerFunction(new WorldFunctions.PingFunction());
         registerFunction(new WorldFunctions.WorldStateFunction());
 
-
-
         registerFunction(new CombatFunctions.AreaDamageAverageFunction());
         registerFunction(new CombatFunctions.AreaDamagePerSecondFunction());
-
-
-
 
         registerFunction(new LootrunFunctions.ChestOpenedFunction());
         registerFunction(new LootrunFunctions.DryBoxesFunction());
@@ -408,7 +402,5 @@ public final class FunctionManager extends Manager {
         registerFunction(new LootrunFunctions.LootrunTaskNameFunction());
         registerFunction(new LootrunFunctions.LootrunTaskTypeFunction());
         registerFunction(new LootrunFunctions.LootrunTimeFunction());
-
-
     }
 }

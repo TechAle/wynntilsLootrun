@@ -5,7 +5,6 @@
 package com.wynntils.overlays.gamebars;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.wynntils.core.components.Models;
 import com.wynntils.core.consumers.overlays.OverlayPosition;
 import com.wynntils.core.consumers.overlays.OverlaySize;
 import com.wynntils.core.persisted.config.Config;

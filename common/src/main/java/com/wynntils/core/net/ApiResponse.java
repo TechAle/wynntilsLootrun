@@ -4,7 +4,6 @@
  */
 package com.wynntils.core.net;
 
-import com.wynntils.core.components.Managers;
 import com.wynntils.core.net.event.NetResultProcessedEvent;
 import java.io.InputStream;
 import java.net.http.HttpRequest;

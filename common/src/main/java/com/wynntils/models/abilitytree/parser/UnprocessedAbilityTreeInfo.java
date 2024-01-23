@@ -4,7 +4,6 @@
  */
 package com.wynntils.models.abilitytree.parser;
 
-import com.wynntils.core.components.Models;
 import com.wynntils.models.abilitytree.AbilityTreeModel;
 import com.wynntils.models.abilitytree.type.AbilityTreeConnectionType;
 import com.wynntils.models.abilitytree.type.AbilityTreeInfo;

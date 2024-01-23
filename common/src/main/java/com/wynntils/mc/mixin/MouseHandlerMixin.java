@@ -23,6 +23,4 @@ public abstract class MouseHandlerMixin {
             ci.cancel();
         }
     }
-
-
 }

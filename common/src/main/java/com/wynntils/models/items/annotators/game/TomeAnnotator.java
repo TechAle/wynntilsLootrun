@@ -4,7 +4,6 @@
  */
 package com.wynntils.models.items.annotators.game;
 
-import com.wynntils.core.components.Models;
 import com.wynntils.core.text.StyledText;
 import com.wynntils.handlers.item.ItemAnnotation;
 import com.wynntils.handlers.item.ItemAnnotator;

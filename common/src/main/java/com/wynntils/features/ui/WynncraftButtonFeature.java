@@ -80,8 +80,7 @@ public class WynncraftButtonFeature extends Feature {
     }
 
     private ServerData getWynncraftServer() {
-        ServerData wynncraftServer =
-                new ServerData("Wynncraft", "server.playmonumenta.com", false);
+        ServerData wynncraftServer = new ServerData("Wynncraft", "server.playmonumenta.com", false);
 
         return wynncraftServer;
     }

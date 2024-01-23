@@ -4,7 +4,6 @@
  */
 package com.wynntils.overlays.gamebars;
 
-import com.wynntils.core.components.Models;
 import com.wynntils.core.consumers.overlays.OverlayPosition;
 import com.wynntils.core.consumers.overlays.OverlaySize;
 import com.wynntils.handlers.bossbar.TrackedBar;

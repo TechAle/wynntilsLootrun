@@ -88,7 +88,6 @@ public class InventoryRedirectFeature extends Feature {
                 String potionCount = matcher.group(1);
                 StyledText potionMessage = StyledText.fromString(String.format("§a+%s Potion Charges", potionCount));
                 Managers.Notification.queueMessage(potionMessage);
-
             }
         }
     }

@@ -173,9 +173,8 @@ public final class MainMapScreen extends AbstractMapScreen {
                         return;
                     }
 
-                    List<MarkerInfo> markers = MarkerModel.USER_WAYPOINTS_PROVIDER
-                            .getMarkerInfos()
-                            .toList();
+                    List<MarkerInfo> markers =
+                            MarkerModel.USER_WAYPOINTS_PROVIDER.getMarkerInfos().toList();
                     if (!markers.isEmpty()) {
                         // -1 is fine as the index since we always increment it by 1
                         int index = markers.indexOf(focusedMarker);

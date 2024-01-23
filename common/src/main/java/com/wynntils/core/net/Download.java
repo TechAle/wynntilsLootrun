@@ -5,7 +5,6 @@
 package com.wynntils.core.net;
 
 import com.wynntils.core.WynntilsMod;
-import com.wynntils.core.components.Managers;
 import com.wynntils.core.net.event.NetResultProcessedEvent;
 import java.io.ByteArrayInputStream;
 import java.io.File;

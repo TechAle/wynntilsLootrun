@@ -9,13 +9,11 @@ import com.google.gson.JsonParser;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.wynntils.core.WynntilsMod;
 import com.wynntils.core.components.Managers;
-import com.wynntils.core.components.Models;
 import com.wynntils.core.components.Service;
 import com.wynntils.core.components.Services;
 import com.wynntils.features.LootrunFeature;
 import com.wynntils.mc.event.PlayerInteractEvent;
 import com.wynntils.mc.event.RenderLevelEvent;
-import com.wynntils.mc.event.ScreenOpenedEvent;
 import com.wynntils.mc.event.TickEvent;
 import com.wynntils.services.lootrunpaths.event.LootrunPathCacheRefreshEvent;
 import com.wynntils.services.lootrunpaths.type.LootrunNote;
@@ -319,9 +317,6 @@ public final class LootrunPathsService extends Service {
         BlockPos pos = event.getPos();
         addChest(pos);
     }
-
-
-
 
     @SubscribeEvent
     public void recordMovement(TickEvent event) {

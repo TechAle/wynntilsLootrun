@@ -5,7 +5,6 @@
 package com.wynntils.core.events;
 
 import com.wynntils.core.WynntilsMod;
-import com.wynntils.core.components.Managers;
 import com.wynntils.utils.mc.McUtils;
 import net.minecraftforge.eventbus.api.Event;
 
