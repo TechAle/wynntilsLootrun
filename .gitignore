@@ -31,3 +31,6 @@ run/
 node_modules
 package-lock.json
 package.json
+fabric/logs/debug-1.log.gz
+*.gz
+*.log

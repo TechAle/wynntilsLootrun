@@ -40,7 +40,7 @@ public final class WynntilsMod {
     public static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    private static final File MOD_STORAGE_ROOT = new File(McUtils.mc().gameDirectory, MOD_ID);
+    private static final File MOD_STORAGE_ROOT = new File(McUtils.mc().gameDirectory, "wynntilsLootrun");
 
     private static ModLoader modLoader;
     private static String version = "";
